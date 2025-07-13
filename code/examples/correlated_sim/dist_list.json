@@ -1,0 +1,32 @@
+[
+    {
+        "index": 1,
+        "dist_name": "LoB1",
+        "dist_type": "gamma",
+        "dist_param": [2, 1]
+    },
+    {
+        "index": 2,
+        "dist_name": "LoB2",
+        "dist_type": "lognormal",
+        "dist_param": [0.5, 1.5]
+    },
+    {
+        "index": 3,
+        "dist_name": "LoB3",
+        "dist_type": "gamma",
+        "dist_param": [3, 1]
+    },
+    {
+        "index": 4,
+        "dist_name": "LoB4",
+        "dist_type": "lognormal",
+        "dist_param": [0.6, 2]
+    },
+    {
+        "index": 5,
+        "dist_name": "LoB5",
+        "dist_type": "gamma",
+        "dist_param": [1.5, 1]
+    }
+]

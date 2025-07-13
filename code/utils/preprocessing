@@ -1,0 +1,225 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.preprocessing import StandardScaler, MinMaxScaler, OneHotEncoder, LabelEncoder
+from sklearn.impute import SimpleImputer
+from sklearn.feature_selection import VarianceThreshold
+from sklearn.decomposition import PCA
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
+
+class DataPreprocessor:
+    def __init__(self, df: pd.DataFrame, feature_list: list = None, seed: int = 1234, sample_size = 100000):
+        """Initialize with a pandas DataFrame"""
+        if not isinstance(df, pd.DataFrame):
+            raise ValueError("df must be a pandas DataFrame")
+
+        self.df = df.copy()
+        self.seed = seed
+        self.sample_size = sample_size
+        self.list_of_features = feature_list if feature_list is not None else df.columns.tolist()
+        
+        # Set NumPy random seed for reproducibility
+        np.random.seed(self.seed)
+
+        # Initialize preprocessing tools
+        self.scaler = StandardScaler()
+        self.encoder = OneHotEncoder(handle_unknown='ignore', sparse_output=False)
+    
+    def handle_missing_values(self, strategy='mean'):
+        """Impute missing values using a given strategy: mean, median, mode."""
+        imputer = SimpleImputer(strategy=strategy)
+        for col in self.df.columns:
+            if self.df[col].dtype == 'object':
+                self.df[col].fillna(self.df[col].mode()[0], inplace=True)
+            else:
+                self.df[col] = imputer.fit_transform(self.df[[col]])
+    
+    def encode_categorical(self, encoding_type='onehot'):
+        """Encode categorical variables using One-Hot or Label Encoding."""
+        categorical_cols = self.df.select_dtypes(include=['object']).columns
+        if encoding_type == 'onehot':
+            self.df = pd.get_dummies(self.df, columns=categorical_cols, drop_first=True)
+        elif encoding_type == 'label':
+            label_enc = LabelEncoder()
+            for col in categorical_cols:
+                self.df[col] = label_enc.fit_transform(self.df[col])
+    
+    def scale_features(self, method='standard'):
+        """Scale continuous features using Standard or MinMax scaling."""
+        numeric_cols = self.df.select_dtypes(include=['number']).columns
+        if method == 'standard':
+            self.df[numeric_cols] = self.scaler.fit_transform(self.df[numeric_cols])
+        elif method == 'minmax':
+            minmax_scaler = MinMaxScaler()
+            self.df[numeric_cols] = minmax_scaler.fit_transform(self.df[numeric_cols])
+    
+    def remove_low_variance_features(self, threshold=0.01):
+        """Remove features with variance lower than a specified threshold."""
+        selector = VarianceThreshold(threshold=threshold)
+        self.df = pd.DataFrame(selector.fit_transform(self.df), columns=self.df.columns[selector.get_support()])
+    
+    def detect_outliers(self, method='zscore', threshold=3):
+        """Detect outliers using Z-score or IQR method."""
+        if method == 'zscore':
+            z_scores = np.abs((self.df - self.df.mean()) / self.df.std())
+            return self.df[(z_scores > threshold).any(axis=1)]
+        elif method == 'iqr':
+            Q1 = self.df.quantile(0.25)
+            Q3 = self.df.quantile(0.75)
+            IQR = Q3 - Q1
+            return self.df[((self.df < (Q1 - 1.5 * IQR)) | (self.df > (Q3 + 1.5 * IQR))).any(axis=1)]
+    
+    def correlation_matrix(self):
+        """Generate and plot the correlation matrix."""
+        list_of_features = self.list_of_features
+        self.corr_matrix = self.df[list_of_features].corr()
+        plt.matshow(self.corr_matrix, cmap = 'coolwarm')
+        plt.xticks(ticks=range(len(list_of_features)), labels=list_of_features, rotation = 45)
+        plt.yticks(ticks=range(len(list_of_features)), labels=list_of_features)
+        plt.show()
+    
+    def get_summary_statistics(self):
+        """Return summary statistics for numerical features."""
+        return self.df.describe()
+    
+    def apply_pca(self, n_components=2):
+        """Apply Principal Component Analysis (PCA) for dimensionality reduction."""
+        pca = PCA(n_components=n_components)
+        principal_components = pca.fit_transform(self.df.select_dtypes(include=['number']))
+        return pd.DataFrame(principal_components, columns=[f'PC{i+1}' for i in range(n_components)])
+    
+    def visualize_distributions(self):
+        """Plot histograms for numerical features."""
+        self.df.hist(figsize=(12, 10), bins=20)
+        plt.show()
+    
+    def _sample_silhouette_score(self, data, labels, sample_size=100000):
+        """Calculate silhouette score using a random sample to speed up computation"""
+        sample_size = min(sample_size, len(data))  
+        idx = np.random.choice(len(data), sample_size, replace=False)
+        sample_data = data.iloc[idx, :] 
+        sample_labels = labels[idx] 
+        return silhouette_score(sample_data, sample_labels)
+    def apply_kmeans_clustering(self, max_clusters=10):
+        """Apply K-Means clustering on a list of selected columns to determine optimal number of bins and cut-off points."""
+        
+        data = self.df[self.list_of_features].dropna()
+        sample_size = self.sample_size
+        scores = []
+        for k in range(2, max_clusters + 1):
+            kmeans = KMeans(n_clusters=k, random_state=42)
+            labels = kmeans.fit_predict(data)
+            score = self._sample_silhouette_score(data, labels, sample_size)
+            scores.append((k, score))
+        
+        optimal_k = max(scores, key=lambda x: x[1])[0]
+        kmeans = KMeans(n_clusters=optimal_k, random_state=42)
+        self.df['Cluster'] = kmeans.fit_predict(data)
+        
+        cluster_centers = kmeans.cluster_centers_
+
+        # Plot a subset of the data
+        if len(data) > sample_size:
+            plot_sample = data.sample(n=sample_size, random_state=self.seed)
+        else:
+            plot_sample = data
+
+        # Assuming 'Cluster' column is already assigned after clustering
+        sns.pairplot(plot_sample, hue='Cluster', palette='viridis', diag_kind='kde')
+        plt.show()
+        
+        return optimal_k, cluster_centers
+
+    def plot_distributions(self, column=None, dependent_var=None, bins=None, save_plots=False, filename_prefix="plot"):
+        """
+        Plots the histogram of all columns in df using 100 bins.
+        If a specific column is chosen, it bins that column based on custom cut-off points
+        and plots the distribution of other columns within each bin.
+        """
+        
+        # Step 1: Plot the overall distribution of all numerical columns
+        num_cols = df.select_dtypes(include=[np.number]).columns
+        fig, axes = plt.subplots(len(num_cols), 1, figsize=(8, len(num_cols) * 3))
+        
+        if len(num_cols) == 1:
+            axes = [axes]  # Ensure iterable if only one column
+        
+        for ax, col in zip(axes, num_cols):
+            ax.hist(df[col], bins=100, alpha=0.7, color='blue', edgecolor='black')
+            ax.set_title(f"Histogram of {col}")
+            ax.set_xlabel(col)
+            ax.set_ylabel("Frequency")
+        
+        plt.tight_layout()
+        if save_plots:
+            plt.savefig(f"{filename_prefix}_overall_distributions.png", dpi=300)
+        plt.show()
+
+        # Step 2: If a column and bins are specified, create conditional distributions
+        if column and bins and dependent_var:
+            # Ensure the columns exist
+            if column not in df.columns or dependent_var not in df.columns:
+                print(f"Error: One of the columns '{column}' or '{dependent_var}' is not in the DataFrame.")
+                return
+            
+            # Create bins based on cut-off points
+            df['bin_group'] = pd.cut(df[column], bins=bins, include_lowest=True)
+
+            # Get unique bins
+            unique_bins = sorted([b for b in df['bin_group'].unique() if pd.notna(b)], key=lambda x: x.left)
+
+        # Set up a single figure with subplots
+        num_bins = len(unique_bins)
+        fig, axes = plt.subplots(1, num_bins, figsize=(num_bins * 4, 4), sharey=True)
+
+        # Ensure axes are iterable even if one bin
+        if num_bins == 1:
+            axes = [axes]
+
+        # Plot each bin's dependent variable distribution
+        for ax, bin_range in zip(axes, unique_bins):
+            subset = df[df['bin_group'] == bin_range]
+            ax.hist(subset[dependent_var], bins=50, alpha=0.7, color='blue', edgecolor='black')
+            ax.set_title(f"{bin_range}")
+            ax.set_xlabel(dependent_var)
+        
+        axes[0].set_ylabel("Frequency")  # Only the first plot needs a y-axis label
+        plt.suptitle(f"Distribution of {dependent_var} Across {column} Bins")
+        plt.tight_layout()
+        if save_plots:
+            plt.savefig(f"{filename_prefix}_conditional_{column}_vs_{dependent_var}.png", dpi=300)
+        plt.show()
+
+        # Drop temporary bin column
+        df.drop(columns=['bin_group'], inplace=True)
+
+    
+    def get_cleaned_data(self):
+        """Return the preprocessed DataFrame."""
+        return self.df
+
+if __name__ == 'main':
+    # Set random seed for reproducibility
+    np.random.seed(1234)
+
+    # Generate a synthetic dataset with 12 million rows
+    num_rows = 100
+
+    # Create synthetic numerical features with different distributions
+    data = {
+        'Feature1': np.random.normal(loc=50, scale=15, size=num_rows),  # Normal distribution
+        'Feature2': np.random.exponential(scale=20, size=num_rows),    # Exponential distribution
+        'Feature3': np.random.uniform(low=10, high=100, size=num_rows), # Uniform distribution
+        'Feature4': np.random.gamma(shape=2, scale=10, size=num_rows),  # Gamma distribution
+    }
+    df = pd.DataFrame(data)
+    feature_list = ['Feature1', 'Feature2', 'Feature3', 'Feature4']
+    DP = DataPreprocessor(df, feature_list)
+    DP.scale_features()
+    DP.plot_distributions('Feature1', 'Feature4', [20, 40, 60, 80], True )
+    DP.get_summary_statistics()
+    DP.apply_kmeans_clustering(10)
+    DP.apply_pca()
+    DP.correlation_matrix()

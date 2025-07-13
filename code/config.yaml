@@ -1,0 +1,19 @@
+distributions:
+  severity:
+    - normal
+    - logistic
+    - exponential
+    - gamma
+    - beta
+    - lognormal
+    - weibull
+    - pareto
+    - uniform
+  frequency:
+    - poisson
+    - negative binomial
+
+
+metrics:
+  - aic
+  - bic

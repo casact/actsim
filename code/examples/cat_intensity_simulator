@@ -1,0 +1,67 @@
+import os
+import pandas as pd
+import numpy as np
+from core.actsimulator import StochasticSimulator
+from actstats import fraction_to_date_full
+from actstats import actuarial as act
+
+
+freq_dist = 'poisson'
+freq_params = (4,) # average 4 events per year
+sev_dist = 'lognormal'
+sev_params = (0.2, 0.2) # average 3 - 5 feet, use 1.2m as average, mean = exp(0.2 + 0.2^2/2)
+simulator = StochasticSimulator(freq_dist, freq_params, sev_dist, sev_params, 100, True, 1234, 0.6, 'gumbel', 3)
+
+simulations = simulator.gen_agg_simulations()
+simulator.all_simulations
+simulator.calc_agg_percentile(99.2)
+simulator.plot_distribution()
+simulator.results.mean()
+simulator.plot_correlated_variables()
+simulator.all_simulations
+simulator.analyze_results()
+gross_loss = simulator.apply_deductible_and_limit(1000, 10000, 100000, 300000)
+gross_loss['amount'] = gross_loss['gross_loss']
+simulator.analyze_results(all_simulations=gross_loss)
+simulator.all_simulations.to_csv('outputs/all_simulations.csv', index=False)
+# for claim simulation, add ESG for HPI forecast
+
+
+# --- Function to Simulate Dates per Year Group Using NHPPDistribution ---
+def simulate_dates_nhpp(group, lambda0=10, alpha=0.5, phase=0, T=1):
+    """
+    For a given group (year), simulate exactly as many event times as rows,
+    then convert the simulated fraction-of-year times to actual dates.
+    """
+    n = len(group)
+    # Create an NHPPDistribution instance with desired parameters
+    nhpp = act.nonhomogeneous_poisson(10, 0.25, 0, 1)
+    # Simulate exactly n event times (fractions of the year)
+    fractions = nhpp.rvs(n_events=n)
+    # Copy the group and assign a new 'date' column
+    group = group.copy()
+    year_val = group['year'].iloc[0]  # Assumes all rows in group have the same year
+    group['date'] = [fraction_to_date_full(t, year=year_val) for t in fractions]
+    return group
+
+# --- Apply the Simulation for Each Year ---
+df_with_dates = simulator.all_simulations.groupby('year', group_keys=False).apply(simulate_dates_nhpp)
+
+# starting year
+start_year = 2023
+def shift_date(date_obj, year):
+    try:
+        return date_obj.replace(year=date_obj.year + year)
+    except ValueError:
+        # For dates like Feb 29 in non-leap years, shift to Feb 28
+        return date_obj.replace(month=2, day=28, year=date_obj.year + year)
+
+df_with_dates['shifted_date'] = df_with_dates['date'].apply(lambda d: shift_date(d, start_year))
+
+claim_data = df_with_dates.copy()
+claim_data = claim_data.rename(columns={'shifted_date':'incurred_date', 'amount': 'ultimate_loss'})
+# Convert to DataFrame with datetime64[ms] to prevent overflow
+claim_data['incurred_date'] = claim_data['incurred_date'].astype('datetime64[s]')
+
+
+claim_data.to_csv('outputs/event_intensity_data.csv', index=False)
