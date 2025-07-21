@@ -4,14 +4,10 @@ import scipy.stats as stats
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from functools import wraps
-import code.utils.utils as utils
+import actrisk.utils.utils as utils
 import pandas as pd
-import code.core.actsimulator as stk
-from code.utils.distribution_decorator import poisson, nbinom
+import actrisk.core.actsimulator as stk
 from actstats import actuarial as act
-
-# treat inf as NaN
-pd.set_option('use_inf_as_na', True)
 
 # Decorator to check if a distribution has been selected
 def check_selected_dist(func):
@@ -64,10 +60,8 @@ class DistributionFitter:
             try:
                 params = distribution.fit(self.data)
                 print(f"{name}: {params}")
-                ### !!!!! need to modify the loglikelihood calculation since actuarial distributions have different parameters than scipy distributions ####
-                ### modified actuarial stats _attr_ functiion ###
                 if name == 'poisson' or name == 'negative binomial':
-                    log_likelihood = np.sum(distribution(*params).logpmf(self.data, self._length))
+                    log_likelihood = np.sum(distribution(*params).logpmf(self.data))
                 else:
                     log_likelihood = np.sum(distribution(*params).logpdf(self.data))
                 # AIC
@@ -192,27 +186,10 @@ class DistributionFitter:
 
     def plot_predictions(self, distribution_names=None):
         """Plot the data and the PDFs of selected distributions."""
-        ######### Style formatting ########
-        '''
-        plt.style.use('dark_background')
-        mpl.rcParams['font.family'] = 'sans-serif'
-        mpl.rcParams['font.sans-serif'] = ['Arial', 'DejaVu Sans', 'Liberation Sans', 'Bitstream Vera Sans', 'sans-serif']
-        mpl.rcParams['axes.edgecolor'] = '#222222'
-        mpl.rcParams['axes.linewidth'] = 1.5
-        mpl.rcParams['axes.titleweight'] = 'bold'
-        mpl.rcParams['axes.titlesize'] = 24
-        mpl.rcParams['axes.labelsize'] = 16
-        mpl.rcParams['legend.fontsize'] = 14
-        mpl.rcParams['xtick.color'] = '#CCCCCC'
-        mpl.rcParams['ytick.color'] = '#CCCCCC'
-        mpl.rcParams['axes.labelcolor'] = '#CCCCCC'
-        mpl.rcParams['axes.titlecolor'] = '#00CFFF'
-        '''
         if distribution_names is None:
             distribution_names = [result['name'] for result in self.results]
 
         # Get colors for the distributions
-        # colors = plt.cm.get_cmap('tab10', len(distribution_names))
         colors = mpl.colormaps.get_cmap('tab10')
         
         x_values = np.linspace(min(self.data), max(self.data), 100)

@@ -26,7 +26,7 @@ pip install actrisk
 ### From Source
 
 ```bash
-git clone https://github.com/yourusername/actrisk.git
+git clone https://github.com/jzhng105/actrisk.git
 cd actrisk
 pip install -e .
 ```
@@ -34,7 +34,7 @@ pip install -e .
 ### Development Installation
 
 ```bash
-git clone https://github.com/yourusername/actrisk.git
+git clone https://github.com/jzhng105/actrisk.git
 cd actrisk
 pip install -e .[dev]
 ```

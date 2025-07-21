@@ -8,13 +8,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from statsmodels.distributions.copula.api import (
     GaussianCopula, ClaytonCopula, FrankCopula, GumbelCopula)
-from code.utils.utils import timing_decorator
+from actrisk.utils.utils import timing_decorator
 from actstats import actuarial as act
 # from functools import cached_property # consider adding cached property
-
-
-# treat inf as NaN
-pd.set_option('use_inf_as_na', True)
 
 class StochasticSimulator:
     _available_distributions = {
@@ -248,12 +244,12 @@ class StochasticSimulator:
         # If no correlation is introduced
         if self.correlation is None and self.copula_type is None:
 
-            num_events_array = self.frequency_dist.rvs(*self.frequency_params, size=self.num_simulations)
+            num_events_array = self.frequency_dist.np_rvs(*self.frequency_params, size=self.num_simulations)
 
             for i in range(self.num_simulations):
                 # Get number of events from frequency distribution
                 num_events = num_events_array[i]
-                severity_samples = (self.severity_dist.rvs(size=num_events, *self.severity_params)
+                severity_samples = (self.severity_dist.np_rvs(size=num_events, *self.severity_params)
                         if num_events > 0 else []
                         )
                 simulate_annual_losses(i, num_events, severity_samples)
@@ -389,7 +385,7 @@ if __name__ == "__main__":
     freq_dist = 'poisson'
     freq_params = (10,)
     sev_dist = 'lognormal'
-    sev_params = (0.5, 0.2)
+    sev_params = (10, 0.5)
     act.poisson.ppf(0.8,10)
     simulator = StochasticSimulator(freq_dist, freq_params, sev_dist, sev_params, 1000, True, 1234, 0.6, 'frank', 0.6)
     simulator = StochasticSimulator(freq_dist, freq_params, sev_dist, sev_params, 10000, True, 1234, 0.6)

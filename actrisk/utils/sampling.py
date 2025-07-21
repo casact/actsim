@@ -1,7 +1,7 @@
 import scipy.stats as stats
 import numpy as np
 import pandas as pd
-import code.utils.piecewise_linear_model as pw_linear_model
+import actrisk.utils.piecewise_linear_model as pw_linear_model
 import matplotlib.pyplot as plt
 
 

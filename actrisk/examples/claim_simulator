@@ -26,27 +26,6 @@ simulated_claims = []
 ##########################
 ### Module test###########
 ##########################
-'''
-n_policies = 1
-freq_param = 1 
-sev_params = (0.8, 0.52)
-
-simulator = StochasticSimulator(
-    'poisson',
-    (freq_param,),
-    'lognormal',
-    sev_params,
-    n_policies,
-    True, 
-    1234, 
-    0.6, 
-    'gumbel', 
-    2
-    )
-
-simulations = simulator.gen_agg_simulations()
-group_claims = simulator.all_simulations.copy()
-'''
 
 for group_params, group_df in grouped_policies:
     freq_param = group_params[0]  # freq_lambda bucket
@@ -114,7 +93,7 @@ def simulate_dates_nhpp(group, lambda0=10, alpha=0.5, phase=0, T=1):
     """
     n = len(group)
     # Create an NHPPDistribution instance with desired parameters
-    nhpp = act.nonhomogeneous_poisson(10, 0.25, 0, 1)
+    nhpp = act.nonhomogeneous_poisson(lambda0, alpha, phase, T)
     # Simulate exactly n event times (fractions of the year)
     fractions = nhpp.rvs(n_events=n)
     # Copy the group and assign a new 'date' column
