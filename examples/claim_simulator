@@ -1,7 +1,9 @@
-import os
+import sys
 import pandas as pd
 import numpy as np
-from core.actsimulator import StochasticSimulator
+# Replace with your actual path to 'src'
+sys.path.insert(0, r"c:\Users\jzhng\Modelling\actrisk\src")
+from actrisk.core.actsimulator import StochasticSimulator
 from actstats import fraction_to_date_full
 from actstats import actuarial as act
 
