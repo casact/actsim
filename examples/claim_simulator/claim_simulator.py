@@ -1,0 +1,143 @@
+import sys
+import pandas as pd
+import numpy as np
+# Replace with your actual path to 'src'
+sys.path.insert(0, r"c:\Users\jzhng\Modelling\actrisk\src")
+from actrisk.core.actsimulator import StochasticSimulator
+from actstats import fraction_to_date_full
+from actstats import actuarial as act
+
+policies = pd.DataFrame({
+    'policy_id': range(1, 10001),
+    'freq_lambda': np.random.uniform(0.2, 0.8, 10000),  # unique frequency λ per policy
+    'sev_mu': np.random.uniform(0.8, 1.2, 10000),       # unique severity µ (lognormal mean)
+    'sev_sigma': np.random.uniform(0.3, 0.7, 10000),    # unique severity σ
+    'start_date': pd.Timestamp('2023-01-01'),
+    'end_date': pd.Timestamp('2023-12-31'),
+})
+
+policies['freq_bucket'] = policies['freq_lambda'].round(2)
+policies['sev_mu_bucket'] = policies['sev_mu'].round(2)
+policies['sev_sigma_bucket'] = policies['sev_sigma'].round(2)
+
+# Create groups based on these buckets
+grouped_policies = policies.groupby(['freq_bucket', 'sev_mu_bucket', 'sev_sigma_bucket'])
+grouped_policies.all()
+simulated_claims = []
+
+##########################
+### Module test###########
+##########################
+
+for group_params, group_df in grouped_policies:
+    freq_param = group_params[0]  # freq_lambda bucket
+    sev_params = group_params[1:]  # (sev_mu_bucket, sev_sigma_bucket)
+
+    n_policies = len(group_df)
+    # Generate claims for all policies in the group simultaneously
+    simulator = StochasticSimulator(
+        'poisson',
+        (freq_param,),
+        'lognormal',
+        sev_params,
+        n_policies,
+        True, 
+        1234, 
+        0.6, 
+        'gumbel', 
+        2
+        )
+    
+    simulations = simulator.gen_agg_simulations()
+    if simulator.all_simulations.empty:
+        # Create empty claim dataframe with expected columns for consistency
+        group_claims = pd.DataFrame(columns=['year', 'event_id', 'yearly_event_id', 'amount'])
+    else:
+        group_claims = simulator.all_simulations.copy()
+        group_claims['policy_id'] = group_df['policy_id'].values[group_claims['year']-1]
+
+    simulated_claims.append(group_claims)
+
+claims_df = pd.concat(simulated_claims, ignore_index=True)
+
+# --- Function to Simulate Dates per Year Group Using NHPPDistribution ---
+def simulate_dates_nhpp(group, lambda0=10, alpha=0.5, phase=0, T=1):
+    """
+    For a given group (year), simulate exactly as many event times as rows,
+    then convert the simulated fraction-of-year times to actual dates.
+    """
+    n = len(group)
+    # Create an NHPPDistribution instance with desired parameters
+    nhpp = act.nonhomogeneous_poisson(lambda0, alpha, phase, T)
+    # Simulate exactly n event times (fractions of the year)
+    fractions = nhpp.rvs(n_events=n)
+    # Copy the group and assign a new 'date' column
+    group = group.copy()
+    year_val = group['year'].iloc[0]  # Assumes all rows in group have the same year
+    group['date'] = [fraction_to_date_full(t, year=year_val) for t in fractions]
+    return group
+
+# --- Apply the Simulation for Each Year ---
+df_with_dates = claims_df.groupby('year', group_keys=False).apply(simulate_dates_nhpp)
+
+# starting year
+start_year = 2023
+def shift_date(date_obj, year):
+    try:
+        return date_obj.replace(year=date_obj.year + year)
+    except ValueError:
+        # For dates like Feb 29 in non-leap years, shift to Feb 28
+        return date_obj.replace(month=2, day=28, year=date_obj.year + year)
+
+df_with_dates['shifted_date'] = df_with_dates['date'].apply(lambda d: shift_date(d, start_year))
+
+claim_data = df_with_dates.copy()
+claim_data = claim_data.rename(columns={'shifted_date':'incurred_date', 'amount': 'ultimate_loss'})
+# Convert to DataFrame with datetime64[ms] to prevent overflow
+claim_data['incurred_date'] = claim_data['incurred_date'].astype('datetime64[s]')
+# Example LDFs (age-to-age factors)
+base_LDFs = {0: 2, 3: 1.5, 6: 1.2, 9: 1.1, 12: 1.05, 15: 1.02, 18: 1.00}
+volatility = 0.1  # Volatility factor for LDFs
+cumulative_factor = 1.0  # Ultimate claims are fully developed
+
+def generate_unique_LDFs(base_LDFs, volatility):
+    return {dev: ldf * np.random.normal(1, volatility) for dev, ldf in base_LDFs.items()}
+
+# Compute CDFs by multiplying future LDFs
+def compute_cdf(base_LDFs, cumulative_factor=1.0):
+    cdf = {}
+    sorted_keys = sorted(base_LDFs.keys(), reverse=True)  # Start from the highest development period
+
+    for dev in sorted_keys:
+        cumulative_factor *= base_LDFs[dev]  # Multiply each LDF moving backward
+        cdf[dev] = cumulative_factor  # Store the cumulative factor
+    return cdf
+
+development_data = []
+
+for _, claim in claim_data.iterrows():  # Iterating over DataFrame rows
+    ultimate_loss = claim['ultimate_loss']
+    incurred_date = pd.to_datetime(claim['incurred_date'])  # Ensure it's a datetime object
+    accident_year = incurred_date.year
+
+    # Generate unique LDFs for this claim
+    unique_LDFs = generate_unique_LDFs(base_LDFs, volatility)
+    cdf = compute_cdf(unique_LDFs, cumulative_factor)  # Compute CDFs using the unique LDFs
+
+    for dev_months, cdf_factor in cdf.items():
+        reported_loss = ultimate_loss / cdf_factor  # Divide instead of multiply
+        dev_date = incurred_date + pd.DateOffset(months=dev_months)  # Add months properly
+        development_data.append({
+            'accident_year': accident_year,
+            'incurred_date': claim['incurred_date'],
+            'claim_id': claim['event_id'],
+            'policy_id': claim['policy_id'],
+            'development_month': dev_months,
+            'incurred_loss': reported_loss,
+            'development_date': dev_date
+        })
+
+claim_development = pd.DataFrame(development_data)
+claim_development = claim_development[claim_development['accident_year'] < 2200]
+
+claim_development.to_csv('../.reserving_analysis/claim_development_random.csv', index=False)

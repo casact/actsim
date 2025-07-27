@@ -1,4 +1,3 @@
-import os
 import pandas as pd
 import numpy as np
 import scipy.stats as stats
@@ -165,7 +164,7 @@ class StochasticSimulator:
         all_simulations_data = []  # Store data for the DataFrame
         event_id = 0  # Overall event counter
 
-        def simulate_annual_losses(i, num_events, severity_samples):
+        def simulate_annual_losses(results, i, num_events, severity_samples):
             """ Helper function to record losses for a given year """
             # self.logger.info(f"Simulation {i+1}/{self.num_simulations}")
             nonlocal event_id
@@ -195,7 +194,7 @@ class StochasticSimulator:
                 severity_samples = (self.severity_dist.ppf(np.random.uniform(size=num_events, low=u_sev[i], high=1), *self.severity_params)
                                     if num_events > 0 else []
                                     )
-                simulate_annual_losses(i, num_events, severity_samples)
+                simulate_annual_losses(results, i, num_events, severity_samples)
 
         if self.correlation is not None and self.copula_type is None:
             # Correlation matrix
@@ -214,7 +213,7 @@ class StochasticSimulator:
                     self.severity_dist.ppf(np.random.uniform(low=sev_random_var[i], high=1, size=num_events), *self.severity_params)
                     if num_events > 0 else []
                 )
-                simulate_annual_losses(i, num_events, severity_samples)
+                simulate_annual_losses(results, i, num_events, severity_samples)
 
             '''
             ######## simulate correlated random number from multi-variate normal distribution ########
@@ -252,7 +251,7 @@ class StochasticSimulator:
                 severity_samples = (self.severity_dist.np_rvs(size=num_events, *self.severity_params)
                         if num_events > 0 else []
                         )
-                simulate_annual_losses(i, num_events, severity_samples)
+                simulate_annual_losses(results, i, num_events, severity_samples)
 
         self._results = results
         self._all_simulations_data = all_simulations_data
@@ -327,13 +326,8 @@ class StochasticSimulator:
 
     def analyze_results(self, quantiles=[0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.99], **kwargs):
         """Compute quantiles, OEP, and AEP from simulation results."""
-        results = kwargs.get('results', None)
         all_simulations = kwargs.get('all_simulations', None)
-        
-        if results is not None:
-            results_array  = results.values
-        else:
-            results_array = self.results.values
+        results = all_simulations.groupby('year')['amount'].sum().reset_index()['amount'] if all_simulations is not None else self.results
         
         # Compute Quantile (VaR), TVaR, and OEP (Occurrence Exceedance Probability)
         if self._keep_all:
@@ -354,7 +348,7 @@ class StochasticSimulator:
             oep_values = None  # OEP cannot be computed without individual event data
         
         # Compute AEP (Aggregate Exceedance Probability)
-        aep_values = {q: np.percentile(results_array, q * 100) for q in quantiles}
+        aep_values = {q: np.percentile(results, q * 100) for q in quantiles}
         
         return pd.DataFrame({
             'VaR': quantile_values,
@@ -381,25 +375,4 @@ class StochasticSimulator:
         
         return annual_gross
     
-if __name__ == "__main__":
-    freq_dist = 'poisson'
-    freq_params = (10,)
-    sev_dist = 'lognormal'
-    sev_params = (10, 0.5)
-    act.poisson.ppf(0.8,10)
-    simulator = StochasticSimulator(freq_dist, freq_params, sev_dist, sev_params, 1000, True, 1234, 0.6, 'frank', 0.6)
-    simulator = StochasticSimulator(freq_dist, freq_params, sev_dist, sev_params, 10000, True, 1234, 0.6)
-    simulator = StochasticSimulator(freq_dist, freq_params, sev_dist, sev_params, 10000, True, 1234)
 
-    simulations = simulator.gen_agg_simulations()
-    simulator.all_simulations
-    simulator.calc_agg_percentile(99.2)
-    simulator.plot_distribution()
-    simulator.results.mean()
-    simulator.plot_correlated_variables()
-    simulator.all_simulations
-    simulator.analyze_results()
-    gross_loss = simulator.apply_deductible_and_limit(1000, 10000, 100000, 300000)
-    gross_loss['amount'] = gross_loss['gross_loss']
-    simulator.analyze_results(all_simulations=gross_loss)
-    simulator.all_simulations.to_csv('outputs/all_simulations.csv', index=False)

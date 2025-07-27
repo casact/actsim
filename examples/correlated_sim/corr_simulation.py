@@ -4,7 +4,6 @@ import pandas as pd
 sys.path.insert(0, r"c:\Users\jzhng\Modelling\actrisk\src")
 from actrisk.core.actsimulator import StochasticSimulator
 
-
 ##### Generate correlated mutivariate distribution
 corr_matrix_file = 'examples/correlated_sim/corr_matrix.csv'
 dist_list_file = 'examples/correlated_sim/dist_list.json'

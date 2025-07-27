@@ -1,12 +1,9 @@
-import yaml
 import numpy as np
 import scipy.stats as stats
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from functools import wraps
-import actrisk.utils.utils as utils
 import pandas as pd
-import actrisk.core.actsimulator as stk
 from actstats import actuarial as act
 
 # Decorator to check if a distribution has been selected
@@ -82,7 +79,7 @@ class DistributionFitter:
                 chi_square = stats.chisquare(f_obs=observed_freq, f_exp=expected_freq).statistic
 
                 # K-S test
-                # ks_statistic = stats.kstest(self.data, distribution.cdf, args=params).statistic
+                ks_statistic = stats.kstest(self.data, distribution.cdf).statistic
 
                 result = {
                     'name': name,
@@ -92,7 +89,7 @@ class DistributionFitter:
                     'aic': aic,
                     'bic': bic,
                     'chisquare': chi_square,
-                    #'ks': ks_statistic
+                    'ks': ks_statistic
                 }
 
                 self.results.append(result)
@@ -216,97 +213,3 @@ class DistributionFitter:
         if not self.results:
             raise ValueError("No distributions have been fitted yet. Call the 'fit' method first.")
         return pd.DataFrame(self.results)
-
-if __name__ == "__main__":
-    # Example usage
-
-    # Load data (for example, normally distributed data)
-    # sev_data = stats.lognorm(0.2, 0, np.exp(0.5)).rvs(size=1000)
-    sev_data = act.lognormal(0.5,0.2).rvs(size=10000)
-    freq_data = np.random.poisson(10, 1000)
-
-    # Initialize fitter with config file
-    config = utils.Config('code/config.yaml')
-
-    #############################
-    ###### Fit Severity #########
-    #############################
-    # User specifies distributions and metrics 
-    distribution_names = config.distributions['severity']
-    metrics = config.metrics
-
-    sev_fitter = DistributionFitter(sev_data, distributions=distribution_names, metrics=metrics)
-    sev_fitter.fit()
-    sev_fitter.best_fits
-    sev_fitter.selected_fit
-    sev_fitter.get_selected_dist()
-    # Selecting a distribution manually
-    sev_fitter.select_distribution('uniform')
-    selected_fit = sev_fitter.selected_fit
-
-    print("Selected fitting distribution:", selected_fit['name'])
-    print("Parameters:", selected_fit['params'])
-    print("AIC:", selected_fit['aic'])
-    print("BIC:", selected_fit['bic'])
-
-    # Calculating statistics
-    sev_fitter.calculate_statistics().to_csv('outputs/statistics.csv')
-
-    # Plotting predictions
-    sev_fitter.plot_predictions()
-
-    # Produce summary
-    sev_fitter.summary().to_csv('outputs/summary.csv')
-
-    # Generating samples
-    samples = sev_fitter.sample(size=10)
-    print("Generated samples:", samples)
-
-    samples = sev_fitter.sample_mixed(0.1, 0.1, size=10)
-
-    #############################
-    ###### Fit frequency ########
-    #############################
-    distribution_names = config.distributions['frequency']
-    metrics = config.metrics
-
-    freq_fitter = DistributionFitter(freq_data, distributions=distribution_names, metrics=metrics)
-    freq_fitter.distributions
-    freq_fitter.fit()
-    freq_fitter.best_fits
-    freq_fitter.selected_fit
-
-
-    #####################################
-    ###### Stochastic Simulation ########
-    #####################################
-    freq_dist = freq_fitter.selected_fit['name']
-    freq_params = freq_fitter.get_selected_params()
-    sev_dist = sev_fitter.selected_fit['name']
-    sev_params = sev_fitter.get_selected_params()
-
-
-    simulator = stk.StochasticSimulator(freq_dist, freq_params, sev_dist, sev_params, 100, True, 1234, 0.6, 'frank', 0.6)
-    simulator = stk.StochasticSimulator(freq_dist, freq_params, sev_dist, sev_params, 100, True, 1234, 0.6)
-    simulator = stk.StochasticSimulator(freq_dist, freq_params, sev_dist, sev_params, 100, True, 1234)
-
-    simulations = simulator.gen_agg_simulations()
-    simulator.all_simulations
-    simulator.calc_agg_percentile(99.2)
-    simulator.plot_distribution()
-    simulator.results.mean()
-    simulator.plot_correlated_variables()
-    simulator.all_simulations
-    print(pd.DataFrame(simulator.analyze_results()))
-
-    ##### Generate correlated mutivariate distribution
-    corr_matrix_file = 'code/utils/corr_matrix.csv'
-    dist_list_file = 'code/utils/dist_list.json'
-    simulator = stk.StochasticSimulator(freq_dist, freq_params, sev_dist, sev_params, 10000, True, 1034, 0.6)
-    simulator.gen_multivariate_corr_simulations(corr_matrix_file, dist_list_file, True)
-    simulator._all_simulations_data
-    data = pd.DataFrame(simulator._all_simulations_data)
-    data_t = data.transpose()
-    # Compute correlation matrix
-    correlation_matrix = data_t.corr()
-    print(correlation_matrix)

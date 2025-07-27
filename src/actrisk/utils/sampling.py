@@ -78,7 +78,6 @@ def beta_sampling(alpha, beta, zero_prop, one_prop, n: int):
 
 ####### example ########
 sev_data = pd.Series([0.2, 0.3, 0.5, 0.4, 0.4, 0.6])
-sev_data = pd.Series(np.random.beta(2, 4, 1000))
 a, b , mean, sd = calc_params_beta(sev_data)
 
 data = pd.DataFrame({'mean':sev_data})

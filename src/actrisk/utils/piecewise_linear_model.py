@@ -55,7 +55,7 @@ class PiecewiseLinearModel:
 breakpoints = [0, 1, 2, 3, 5]  # The x values where the slopes change
 slopes = [2, -1, 0.5, 3]  # The slopes between the breakpoints
 
-model = PiecewiseLinearModel(breakpoints, slopes)
+model = PiecewiseLinearModel(0,breakpoints, slopes)
 
 # Create a sample DataFrame
 df = pd.Series(np.linspace(0, 6, 100))

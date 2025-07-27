@@ -17,3 +17,5 @@ distributions:
 metrics:
   - aic
   - bic
+  - log_likelihood
+  - chisquare
