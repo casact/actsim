@@ -1,7 +1,4 @@
-import sys
 import pandas as pd
-# Replace with your actual path to 'src'
-sys.path.insert(0, r"c:\Users\jzhng\Modelling\actrisk\src")
 from actrisk.core.actsimulator import StochasticSimulator
 
 ##### Generate correlated mutivariate distribution

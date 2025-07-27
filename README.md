@@ -181,7 +181,7 @@ print(correlation_matrix)
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/actrisk.git
+git clone https://github.com/jzhng105/actrisk.git
 cd actrisk
 
 # Create virtual environment
