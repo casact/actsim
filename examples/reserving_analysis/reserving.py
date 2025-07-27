@@ -1,7 +1,7 @@
 import chainladder as cl
 import pandas as pd
 
-file_path = 'claim_development_random.csv'
+file_path = r'C:\Users\jzhng\Modelling\actrisk\examples\reserving_analysis\claim_development_random.csv'
 
 df_cat_claim = pd.read_csv(
     file_path
@@ -18,4 +18,5 @@ tri_cat_claim = cl.Triangle(
     cumulative=True,
 )
 
-tri_cat_claim['incurred_loss'].head()
+tri_cat_claim_OQDQ = tri_cat_claim['incurred_loss'].grain('OQDQ')
+tri_cat_claim_OQDQ.link_ratio

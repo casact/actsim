@@ -1,8 +1,5 @@
-import sys
 import pandas as pd
 import numpy as np
-# Replace with your actual path to 'src'
-sys.path.insert(0, r"c:\Users\jzhng\Modelling\actrisk\src")
 from actrisk.core.actsimulator import StochasticSimulator
 from actstats import fraction_to_date_full
 from actstats import actuarial as act
@@ -139,5 +136,4 @@ for _, claim in claim_data.iterrows():  # Iterating over DataFrame rows
 
 claim_development = pd.DataFrame(development_data)
 claim_development = claim_development[claim_development['accident_year'] < 2200]
-
-claim_development.to_csv('../.reserving_analysis/claim_development_random.csv', index=False)
+claim_development.to_csv('examples/reserving_analysis/claim_development_random.csv', index=False)
