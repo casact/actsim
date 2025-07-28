@@ -1,4 +1,4 @@
-from actrisk.core.actsimulator import StochasticSimulator
+from actrisk import StochasticSimulator
 from actstats import actuarial as act
 
 freq_dist = 'poisson'

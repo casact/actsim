@@ -1,24 +1,29 @@
 import yaml
 import os
 import warnings
-from typing import Any, Dict, Optional
-from multiprocessing import Pool, cpu_count, get_context
-import pandas as pd
-import numpy as np
-from functools import wraps
-import dill
+from typing import Any, Dict
 import time
+import pkg_resources
 
 class Config:
-    def __init__(self, directory: str, filename=None):
-        # If only one parameter is provided, it's the file path
-        if filename is None:
-            file_path = directory
-        else:
-        # If both parameters are provided, combine them to form the file path
-            file_path = f'{directory}/{filename}'
-        self.__dict__['_file_path'] = file_path  # Store the file path in the object's dict
-        self.__dict__['_data'] = self._read_yaml()  # Store the config data in the object's dict
+    def __init__(self, file_path: str = None):
+        """
+        Initialize Config with a YAML file path.
+        
+        Args:
+            file_path: Path to the YAML config file. If None, uses the default config.yaml
+                      from the package installation.
+        """
+        if file_path is None:
+            # Use the default config file from the package
+            try:
+                file_path = pkg_resources.resource_filename('actrisk', 'config.yaml')
+            except Exception as e:
+                warnings.warn(f"Could not find default config file: {e}")
+                file_path = "config.yaml"  # Fallback to local file
+        
+        self.__dict__['_file_path'] = file_path
+        self.__dict__['_data'] = self._read_yaml()
 
     def _read_yaml(self) -> Dict[str, Any]:
         """Reads the YAML file and returns its contents as a dictionary."""

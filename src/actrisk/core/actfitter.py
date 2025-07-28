@@ -57,29 +57,11 @@ class DistributionFitter:
             try:
                 params = distribution.fit(self.data)
                 print(f"{name}: {params}")
-                if name == 'poisson' or name == 'negative binomial':
-                    log_likelihood = np.sum(distribution(*params).logpmf(self.data))
-                else:
-                    log_likelihood = np.sum(distribution(*params).logpdf(self.data))
-                # AIC
-                aic = 2 * len(params) - 2 * log_likelihood
-
-                # BIC
-                bic = np.log(len(self.data)) * len(params) - 2 * log_likelihood
-
-                # Chi-square test with normalization
-                expected_freq, _ = np.histogram(self.data, bins=10, density=False)
-                observed_sample = distribution(*params).rvs(size=len(self.data))
-                observed_freq, _ = np.histogram(observed_sample, bins=10)
-
-                # Normalize observed frequencies to match the sum of expected frequencies
-                observed_freq = observed_freq * (expected_freq.sum() / observed_freq.sum())
-
-                # Perform Chi-square test
-                chi_square = stats.chisquare(f_obs=observed_freq, f_exp=expected_freq).statistic
-
-                # K-S test
-                ks_statistic = stats.kstest(self.data, distribution.cdf).statistic
+                log_likelihood = self.compute_log_likelihood(distribution, params, self.data)
+                aic = self.compute_aic(log_likelihood, len(params))
+                bic = self.compute_bic(log_likelihood, len(params), len(self.data))
+                chi_square = self.compute_chi_square(distribution, params, self.data)
+                ks_statistic = self.compute_ks_statistic(distribution, params, self.data)
 
                 result = {
                     'name': name,
@@ -213,3 +195,46 @@ class DistributionFitter:
         if not self.results:
             raise ValueError("No distributions have been fitted yet. Call the 'fit' method first.")
         return pd.DataFrame(self.results)
+    
+    @staticmethod
+    def compute_log_likelihood(distribution, params, data):
+        try:
+            if hasattr(distribution(*params), 'logpmf'):
+                return np.sum(distribution(*params).logpmf(data))
+            else:
+                return np.sum(distribution(*params).logpdf(data))
+        except Exception as e:
+            raise RuntimeError(f"Error computing log-likelihood: {e}")
+
+    @staticmethod
+    def compute_aic(log_likelihood, num_params):
+        return 2 * num_params - 2 * log_likelihood
+
+    @staticmethod
+    def compute_bic(log_likelihood, num_params, n_samples):
+        return np.log(n_samples) * num_params - 2 * log_likelihood
+    
+    @staticmethod
+    def compute_chi_square(distribution, params, data, bins=10):
+        # Chi-square test with normalization
+        try:
+            expected_freq, _ = np.histogram(data, bins, density=False)
+            observed_sample = distribution(*params).rvs(size=len(data))
+            observed_freq, _ = np.histogram(observed_sample, bins)
+
+            # Normalize observed frequencies to match the sum of expected frequencies
+            observed_freq = observed_freq * (expected_freq.sum() / observed_freq.sum())
+
+            # Perform Chi-square test
+            return stats.chisquare(f_obs=observed_freq, f_exp=expected_freq).statistic
+        except Exception as e:
+                raise RuntimeError(f"Error computing chi-square: {e}")
+    ####! Still use stats.kstest for KS statistic, will update later####
+    @staticmethod
+    def compute_ks_statistic(distribution, params, data):
+        try:
+            cdf = distribution(*params).dist.cdf
+            return stats.kstest(data, cdf).statistic
+        except Exception as e:
+            raise RuntimeError(f"Error computing KS statistic: {e}")
+

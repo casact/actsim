@@ -38,7 +38,7 @@ class StochasticSimulator:
         self.copula_type = copula_type
         self.theta = theta
         self._keep_all = keep_all
-        np.random.default_rng(seed)
+        rng = np.random.default_rng(seed)
 
         # Set up logging
         logging.basicConfig(level=logging.INFO)
@@ -67,23 +67,6 @@ class StochasticSimulator:
         """
         with open(file_path, 'r') as f:
             return json.load(f)
-
-    '''
-
-    def gen_copula(self):
-        ### Generate copula for frequency and severity
-        if self.copula_type == 'gaussian':
-            mean = [0, 0]
-            corr_matrix = np.array([[1, self.correlation], [self.correlation, 1]])
-            copula_samples = np.random.multivariate_normal(mean, corr_matrix, self.num_simulations)
-            u = scipy.stats.norm.cdf(copula_samples)
-        
-        else:
-            raise ValueError(f"Copula type '{self.copula_type}' not implemented")
-
-        return u[:, 0], u[:, 1]
-    
-    '''
 
     def gen_copula(self):
         ### Generate copula for frequency and severity
@@ -214,41 +197,16 @@ class StochasticSimulator:
                     if num_events > 0 else []
                 )
                 simulate_annual_losses(results, i, num_events, severity_samples)
-
-            '''
-            ######## simulate correlated random number from multi-variate normal distribution ########
-            corr_matrix = np.array([[1, self.correlation], [self.correlation, 1]])
-            mean = [0, 0]
-            for i in range(self.num_simulations):
-                self.logger.info(f"Simulation {i+1}/{self.num_simulations}")
-                
-                # Generate correlated normal variables
-                correlated_normals = np.random.multivariate_normal(mean, corr_matrix)
-
-                freq_random_var = scipy.stats.norm.cdf(correlated_normals[0])
-                sev_random_var = scipy.stats.norm.cdf(correlated_normals[1])
-
-                # Determine frequency and severity with the correlated random variables
-                # Get number of events from frequency distribution
-                num_events = int(self.frequency_dist.ppf(freq_random_var, *self.frequency_params))
-                if num_events > 0:
-                    # Generate correlated severities and sum
-                    correlated_severities = self.severity_dist.ppf(np.random.uniform(size=num_events, low=sev_random_var, high=1), *self.severity_params)
-                    result = np.sum(correlated_severities)
-                else:
-                    result = 0
-                results.append(result)
-            '''
         
         # If no correlation is introduced
         if self.correlation is None and self.copula_type is None:
 
-            num_events_array = self.frequency_dist.np_rvs(*self.frequency_params, size=self.num_simulations)
+            num_events_array = self.frequency_dist.np_rvs(size=self.num_simulations)
 
             for i in range(self.num_simulations):
                 # Get number of events from frequency distribution
                 num_events = num_events_array[i]
-                severity_samples = (self.severity_dist.np_rvs(size=num_events, *self.severity_params)
+                severity_samples = (self.severity_dist.np_rvs(size=num_events)
                         if num_events > 0 else []
                         )
                 simulate_annual_losses(results, i, num_events, severity_samples)
@@ -304,12 +262,33 @@ class StochasticSimulator:
 
         # Merge severity and frequency data
         yearly_data = pd.merge(yearly_frequency, yearly_severity, on='year', how='inner')
+        yearly_data.rename(columns={'yearly_event_id': 'event_count', 'amount': 'mean_severity'}, inplace=True)
+
+        # Replace inf with NaN to avoid seaborn/pandas warning
+        yearly_data.replace([np.inf, -np.inf], np.nan, inplace=True)
+        yearly_data.dropna(subset=['event_count', 'mean_severity'], inplace=True)
 
         # Plot the correlation between frequency and severity
         plt.figure(figsize=(10, 6))
-        sns.scatterplot(x='yearly_event_id', y='amount', data=yearly_data, alpha=0.6, color='b')
-        sns.kdeplot(x='yearly_event_id', y='amount', data=yearly_data, levels=10, color='red', fill=True, alpha=0.2)
-
+        sns.scatterplot(data=yearly_data, 
+                x='event_count', 
+                y='mean_severity', 
+                alpha=0.6, 
+                color='blue', 
+                label='Yearly Data')
+        try:
+            sns.kdeplot(
+                data=yearly_data,
+                x='event_count',
+                y='mean_severity',
+                levels=10,
+                fill=True,
+                alpha=0.2,
+                color='red',
+                warn_singular=False  # suppress warning for small datasets
+            )
+        except Exception as e:
+            print(f"Warning during KDE plot: {e}")
         # Add labels and title
         plt.title('Correlation Between Frequency and Severity')
         plt.xlabel('Number of Events (Frequency)')
@@ -317,11 +296,12 @@ class StochasticSimulator:
         plt.grid(True)
 
         # Calculate and display the correlation coefficient
-        correlation = yearly_data['yearly_event_id'].corr(yearly_data['amount'])
+        correlation = yearly_data['event_count'].corr(yearly_data['mean_severity'])
         plt.text(0.95, 0.95, f'Correlation: {correlation:.2f}', 
                 transform=plt.gca().transAxes, ha='right', va='top', 
                 bbox=dict(facecolor='white', alpha=0.8))
 
+        plt.legend()
         plt.show()
 
     def analyze_results(self, quantiles=[0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.99], **kwargs):
@@ -375,4 +355,3 @@ class StochasticSimulator:
         
         return annual_gross
     
-
