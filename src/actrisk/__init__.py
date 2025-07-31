@@ -1,5 +1,6 @@
 from .core.actfitter import DistributionFitter
-from .core.actsimulator import StochasticSimulator 
+from .core.actsimulator import StochasticSimulator
+from .tools.claimsimulator import ClaimSimulator 
 from .utils.utils import Config
 
 def load_config(file_path: str = None):
@@ -14,4 +15,4 @@ def load_config(file_path: str = None):
     """
     return Config(file_path)
 
-__all__ = ["DistributionFitter", "StochasticSimulator", "Config", "load_config"]
+__all__ = ["DistributionFitter", "StochasticSimulator", "Config", "ClaimSimulator", "load_config"]

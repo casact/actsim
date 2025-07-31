@@ -42,11 +42,11 @@ pip install -e .[dev]
 ## Quick Start
 
 ```python
-from actrisk.core import actfitter
+from actrisk import load_config, DistributionFitter
 from actstats import actuarial as act
 
 # Load configuration
-config = Config('config.yaml')
+config = load_config()
 
 sev_data = act.lognormal(0.5,0.2).rvs(size=10000)
 
@@ -75,66 +75,99 @@ sev_fitter.selected_fit
 ### Configuration Management
 ```python
 # Initialize fitter with config file
-config = utils.Config('code/config.yaml')
+config = load_config()
 
 ```
 
-### Fit Severity
+### Fit Distributions
 ```python
-sev_data = act.lognormal(0.5,0.2).rvs(size=10000)
+# ---------------------------------------------
+# Import required modules
+# ---------------------------------------------
+from actrisk import load_config, DistributionFitter
+from actstats import actuarial as act
 
-#############################
-###### Fit Severity #########
-#############################
-# User specifies distributions and metrics 
+# ---------------------------------------------
+# 1. Generate Example Data
+# ---------------------------------------------
+# Severity data: Using lognormal distribution with mean=0.5 and sigma=0.2
+sev_data = act.lognormal(0.5, 0.2).rvs(size=10000)
+
+# Frequency data: Using Poisson distribution with λ=10
+freq_data = act.poisson.rvs(10, 1000)
+
+# ---------------------------------------------
+# 2. Load Configuration
+# ---------------------------------------------
+# This loads distribution lists and metrics from the actrisk config file
+config = load_config()
+
+# ---------------------------------------------
+# 3. Fit Severity Distributions
+# ---------------------------------------------
+# Get severity distributions and metrics from config
 distribution_names = config.distributions['severity']
 metrics = config.metrics
 
+# Initialize severity fitter
 sev_fitter = DistributionFitter(sev_data, distributions=distribution_names, metrics=metrics)
+
+# Perform fitting
 sev_fitter.fit()
-sev_fitter.best_fits
-sev_fitter.selected_fit
-sev_fitter.get_selected_dist()
-# Selecting a distribution manually
+
+# View best fits and selected distribution
+print("Best fits:", sev_fitter.best_fits)
+print("Selected fit:", sev_fitter.selected_fit)
+print("Selected distribution object:", sev_fitter.get_selected_dist())
+
+# Manually selecting a distribution (example: 'uniform')
 sev_fitter.select_distribution('uniform')
 selected_fit = sev_fitter.selected_fit
 
+# Print details of the selected fit
 print("Selected fitting distribution:", selected_fit['name'])
 print("Parameters:", selected_fit['params'])
 print("AIC:", selected_fit['aic'])
 print("BIC:", selected_fit['bic'])
 
-# Calculating statistics
-sev_fitter.calculate_statistics().to_csv('outputs/statistics.csv')
+# Calculate statistics for severity
+sev_fitter.calculate_statistics()
 
-# Plotting predictions
+# Plot predictions
 sev_fitter.plot_predictions()
 
-# Produce summary
-sev_fitter.summary().to_csv('outputs/summary.csv')
+# Print summary report
+sev_fitter.summary()
 
-# Generating samples
+# ---------------------------------------------
+# 4. Generate Samples from Severity Fit
+# ---------------------------------------------
 samples = sev_fitter.sample(size=10)
 print("Generated samples:", samples)
 
+# Generate mixed samples (e.g., weighted combinations)
 samples = sev_fitter.sample_mixed(0.1, 0.1, size=10)
-```
+print("Generated samples:", samples)
 
-### Fit Frequency
-
-```python
-#############################
-###### Fit frequency ########
-#############################
+# ---------------------------------------------
+# 5. Fit Frequency Distributions
+# ---------------------------------------------
 distribution_names = config.distributions['frequency']
 metrics = config.metrics
 
+# Initialize frequency fitter
 freq_fitter = DistributionFitter(freq_data, distributions=distribution_names, metrics=metrics)
-freq_fitter.distributions
-freq_fitter.fit()
-freq_fitter.best_fits
-freq_fitter.selected_fit
 
+# Show available frequency distributions
+print("Frequency distributions:", freq_fitter.distributions)
+
+# Perform fitting
+freq_fitter.fit()
+
+# View best fits and summary
+print("Frequency best fits:", freq_fitter.best_fits)
+print("Frequency selected fit:", freq_fitter.selected_fit)
+freq_fitter.summary()
 ```
 
 ### Stochastic Simulation
@@ -143,34 +176,101 @@ freq_fitter.selected_fit
 #####################################
 ###### Stochastic Simulation ########
 #####################################
-freq_dist = freq_fitter.selected_fit['name']
-freq_params = freq_fitter.get_selected_params()
-sev_dist = sev_fitter.selected_fit['name']
-sev_params = sev_fitter.get_selected_params()
+# ---------------------------------------------
+# 1. Import Required Modules
+# ---------------------------------------------
+from actrisk import StochasticSimulator
+from actstats import actuarial as act
 
+# ---------------------------------------------
+# 2. Define Frequency and Severity Distributions
+# ---------------------------------------------
+# Frequency distribution: Poisson with λ=10
+freq_dist = 'poisson'
+freq_params = (10,)
 
-simulator = stk.StochasticSimulator(freq_dist, freq_params, sev_dist, sev_params, 100, True, 1234, 0.6, 'frank', 0.6)
-simulator = stk.StochasticSimulator(freq_dist, freq_params, sev_dist, sev_params, 100, True, 1234, 0.6)
-simulator = stk.StochasticSimulator(freq_dist, freq_params, sev_dist, sev_params, 100, True, 1234)
+# Severity distribution: Lognormal with meanlog=10, sigma=0.5
+sev_dist = 'lognormal'
+sev_params = (10, 0.5)
 
+# Preview quantile (e.g., 80th percentile of Poisson)
+quantile_80 = act.poisson.ppf(0.8, 10)
+print("80th percentile of Poisson(10):", quantile_80)
+
+# ---------------------------------------------
+# 3. Initialize Simulator with Different Levels of Complexity
+# ---------------------------------------------
+
+# With copula and correlation settings
+simulator = StochasticSimulator(freq_dist, freq_params, sev_dist, sev_params, 10000, True, 1234, 0.6, 'frank', 0.6)
+
+# Without specifying copula_type and theta (defaults apply)
+simulator = StochasticSimulator(freq_dist, freq_params, sev_dist, sev_params, 10000, True, 1234, 0.6)
+
+# Without using copula at all
+simulator = StochasticSimulator(freq_dist, freq_params, sev_dist, sev_params, 10000, True, 1234)
+
+# ---------------------------------------------
+# 4. Generate Simulated Aggregate Losses
+# ---------------------------------------------
 simulations = simulator.gen_agg_simulations()
-simulator.all_simulations
-simulator.calc_agg_percentile(99.2)
+
+# Access full simulation DataFrame
+print("All simulations preview:")
+print(simulator.all_simulations.head())
+
+# ---------------------------------------------
+# 5. Analyze Simulation Results
+# ---------------------------------------------
+
+# Calculate aggregate percentile (e.g., 99.2%)
+percentile_99_2 = simulator.calc_agg_percentile(99.2)
+print("99.2% Aggregate Loss Percentile:", percentile_99_2)
+
+# Plot loss distribution histogram
 simulator.plot_distribution()
-simulator.results.mean()
+
+# Show simulation mean
+print("Mean simulated loss:", simulator.results.mean())
+
+# If copula is used, plot frequency-severity correlation structure
 simulator.plot_correlated_variables()
+
+# Summary statistics and shape diagnostics
+simulator.analyze_results()
+
+# ---------------------------------------------
+# 6. Apply Deductibles and Limits
+# ---------------------------------------------
+# Apply per occurrence deductible of 1,000
+# Occurrence limit of 10,000
+# Annual aggregate deductible of 100,000
+# Annual aggregate limit of 300,000
+gross_loss = simulator.apply_deductible_and_limit(1000, 10000, 100000, 300000)
+
+
+# Assign processed loss to expected structure for reporting
+gross_loss['amount'] = gross_loss['gross_loss']
+
+# Re-analyze results based on capped/layered gross loss
+simulator.analyze_results(all_simulations=gross_loss)
+
+# ---------------------------------------------
+# 7. Export Simulated Data to CSV
+# ---------------------------------------------
 simulator.all_simulations
-print(pd.DataFrame(simulator.analyze_results()))
 ```
+
 ### Correlated Mutivariate Distribution Simulation
 
 ```python
-###########################################################
-##### Generate correlated mutivariate distribution ########
-###########################################################
-corr_matrix_file = 'code/utils/corr_matrix.csv'
-dist_list_file = 'code/utils/dist_list.json'
-simulator = stk.StochasticSimulator(freq_dist, freq_params, sev_dist, sev_params, 10000, True, 1034, 0.6)
+import pandas as pd
+from actrisk import StochasticSimulator
+
+##### Generate correlated mutivariate distribution
+corr_matrix_file = 'examples/correlated_sim/corr_matrix.csv'
+dist_list_file = 'examples/correlated_sim/dist_list.json'
+simulator = StochasticSimulator("normal", [1,0], "normal",[1,0], 100000, True, 1234) # placeholder parameters for the simulator
 simulator.gen_multivariate_corr_simulations(corr_matrix_file, dist_list_file, True)
 simulator._all_simulations_data
 data = pd.DataFrame(simulator._all_simulations_data)
@@ -185,6 +285,8 @@ print(correlation_matrix)
 ##########################################
 ###### Synthetic Claim Simulation ########
 ##########################################
+import pandas as pd
+from actrisk import ClaimSimulator
 
 # Simulate policy characteristics
 policies = pd.DataFrame({
