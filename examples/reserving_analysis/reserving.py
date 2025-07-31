@@ -1,7 +1,7 @@
 import chainladder as cl
 import pandas as pd
 
-file_path = r'C:\Users\jzhng\Modelling\actrisk\examples\reserving_analysis\claim_development_random.csv'
+file_path = 'sample_file_path'
 
 df_cat_claim = pd.read_csv(
     file_path
