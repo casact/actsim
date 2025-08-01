@@ -11,7 +11,6 @@ A Python package for actuarial risk modeling and simulation.
 
 - **Risk Modeling**: Advanced tools for actuarial risk analysis
 - **Monte Carlo Simulations**: High-performance simulation capabilities
-- **Parallel Processing**: Optimized for large-scale computations
 - **Configuration Management**: Flexible YAML-based configuration system
 - **Statistical Analysis**: Comprehensive statistical tools for risk assessment
 
@@ -201,13 +200,13 @@ print("80th percentile of Poisson(10):", quantile_80)
 # 3. Initialize Simulator with Different Levels of Complexity
 # ---------------------------------------------
 
-# With copula and correlation settings
+# With copula
 simulator = StochasticSimulator(freq_dist, freq_params, sev_dist, sev_params, 10000, True, 1234, 0.6, 'frank', 0.6)
 
-# Without specifying copula_type and theta (defaults apply)
+# with linear correlation
 simulator = StochasticSimulator(freq_dist, freq_params, sev_dist, sev_params, 10000, True, 1234, 0.6)
 
-# Without using copula at all
+# Without copula or linear correlation
 simulator = StochasticSimulator(freq_dist, freq_params, sev_dist, sev_params, 10000, True, 1234)
 
 # ---------------------------------------------
@@ -263,6 +262,52 @@ simulator.all_simulations
 
 ### Correlated Mutivariate Distribution Simulation
 
+Sample correlation matrix csv file
+```csv
+Correlation Matrix, LoB1, LoB2, LoB3, LoB4, LoB5
+LoB1, 1, 0.5, 0.5, 0.3, 0.2
+LoB2, 0.5, 1, 0.5, 0.7, 0.3 
+LoB3, 0.5, 0.5, 1, 0.2, 0.5
+LoB4, 0.3, 0.7, 0.2, 1, 0.3
+LoB5, 0.2, 0.3, 0.5, 0.3, 1
+```
+
+Sample multi-line distribution json file
+```json
+[
+    {
+        "index": 1,
+        "dist_name": "LoB1",
+        "dist_type": "gamma",
+        "dist_param": [2, 1]
+    },
+    {
+        "index": 2,
+        "dist_name": "LoB2",
+        "dist_type": "lognormal",
+        "dist_param": [2, 1]
+    },
+    {
+        "index": 3,
+        "dist_name": "LoB3",
+        "dist_type": "gamma",
+        "dist_param": [3, 1]
+    },
+    {
+        "index": 4,
+        "dist_name": "LoB4",
+        "dist_type": "lognormal",
+        "dist_param": [3, 2]
+    },
+    {
+        "index": 5,
+        "dist_name": "LoB5",
+        "dist_type": "gamma",
+        "dist_param": [4, 2]
+    }
+]
+```
+
 ```python
 import pandas as pd
 from actrisk import StochasticSimulator
@@ -286,6 +331,7 @@ print(correlation_matrix)
 ###### Synthetic Claim Simulation ########
 ##########################################
 import pandas as pd
+import numpy as np
 from actrisk import ClaimSimulator
 
 # Simulate policy characteristics

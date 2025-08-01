@@ -116,6 +116,14 @@ class StochasticSimulator:
         num_lobs = len(dist_list)
         lob_names = [dist["dist_name"] for dist in dist_list]
 
+        # Validate correlation matrix shape
+        if corr_matrix.shape != (num_lobs, num_lobs):
+            raise ValueError(
+                f"Dimension mismatch: correlation matrix shape is {corr_matrix.shape}, "
+                f"but {num_lobs} distributions were provided in the LoB file. "
+                f"Expected shape: ({num_lobs}, {num_lobs})"
+            )
+        
         # Generate correlated percentiles
         correlated_percentiles = self._gen_cd_corr_percentile(corr_matrix, num_lobs)
 
@@ -126,10 +134,10 @@ class StochasticSimulator:
             dist_type = dist["dist_type"].lower()
             params = dist["dist_param"]
             
-            scipy_dist = self._validate_distribution(dist_type)
+            dist = self._validate_distribution(dist_type)
             try:
                 # Transform percentiles to target distribution values
-                simulation_results[i, :] = scipy_dist.ppf(correlated_percentiles[i], *params)
+                simulation_results[i, :] = dist.ppf(correlated_percentiles[i], *params)
             except Exception as e:
                 self.logger.error(f"Error processing {dist['dist_name']}: {e}")
                 raise
