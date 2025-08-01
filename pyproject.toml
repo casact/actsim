@@ -4,11 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "actrisk"
-version = "0.1.0.4"
+version = "0.1.0.5"
 description = "Of the Actuary, By the Actuary, For the Actuary: A ZNSTARS Python package for actuarial risk modeling and simulation"
 authors = [
     { name = "Juntao Zhang"},
-    { name = "Tingting Shi"},
     { email = "jzhng106@gmail.com"}
 ]
 license = {text = "Apache License 2.0"}
