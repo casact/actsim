@@ -89,7 +89,7 @@ from actstats import actuarial as act
 # ---------------------------------------------
 # 1. Generate Example Data
 # ---------------------------------------------
-# Severity data: Using lognormal distribution with mean=0.5 and sigma=0.2
+# Severity data: Using lognormal distribution with mu=0.5 and sigma=0.2
 sev_data = act.lognormal(0.5, 0.2).rvs(size=10000)
 
 # Frequency data: Using Poisson distribution with λ=10
