@@ -89,7 +89,7 @@ class DistributionFitter:
             best_fit = min(self.results, key=lambda x: x[metric])
             self.best_fits[metric] = best_fit
         
-        self.selected_fit = self.best_fits['aic']  # Default selected fit best fit under AIC 
+        self.selected_fit = self.best_fits['aic'] if 'aic' in self.metrics else self.best_fits[self.metrics[0]]  # Default selected fit best fit under AIC else select first metric 
     
     def get_best_fit(self, metric):
         """Get the best-fitting distribution for a specific metric."""
