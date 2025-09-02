@@ -188,7 +188,7 @@ from actstats import actuarial as act
 freq_dist = 'poisson'
 freq_params = (10,)
 
-# Severity distribution: Lognormal with meanlog=10, sigma=0.5
+# Severity distribution: Lognormal with mu=10, sigma=0.5
 sev_dist = 'lognormal'
 sev_params = (10, 0.5)
 

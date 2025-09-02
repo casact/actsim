@@ -209,12 +209,12 @@ class StochasticSimulator:
         # If no correlation is introduced
         if self.correlation is None and self.copula_type is None:
 
-            num_events_array = self.frequency_dist.np_rvs(size=self.num_simulations)
+            num_events_array = self.frequency_dist(*self.frequency_params).np_rvs(size=self.num_simulations)
 
             for i in range(self.num_simulations):
                 # Get number of events from frequency distribution
                 num_events = num_events_array[i]
-                severity_samples = (self.severity_dist.np_rvs(size=num_events)
+                severity_samples = (self.severity_dist(*self.severity_params).np_rvs(size=num_events)
                         if num_events > 0 else []
                         )
                 simulate_annual_losses(results, i, num_events, severity_samples)
@@ -362,4 +362,3 @@ class StochasticSimulator:
         annual_gross['gross_loss'] = annual_gross['gross_loss'].clip(upper=agg_limit)
         
         return annual_gross
-    
