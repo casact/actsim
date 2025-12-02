@@ -1,11 +1,11 @@
 # Using the Config File After Package Installation
 
-After installing the `actrisk` package, you can use the config file in several ways:
+After installing the `actsim` package, you can use the config file in several ways:
 
 ## Method 1: Use the Default Config (Recommended)
 
 ```python
-from actrisk import DistributionFitter, load_config
+from actsim import DistributionFitter, load_config
 
 # Load the default config file
 config = load_config()
@@ -28,7 +28,7 @@ fitter = DistributionFitter(
 You can also use the Config class directly:
 
 ```python
-from actrisk import DistributionFitter, Config
+from actsim import DistributionFitter, Config
 
 # Use default config
 config = Config()
@@ -42,8 +42,8 @@ config = Config('path/to/your/custom_config.yaml')
 For more advanced usage:
 
 ```python
-from actrisk.utils import Config
-from actrisk.core.actfitter import DistributionFitter
+from actsim.utils import Config
+from actsim.core.actfitter import DistributionFitter
 
 config = Config()  # Uses default config
 ```
@@ -121,7 +121,7 @@ print(config.distributions['severity'])
 ## Complete Example
 
 ```python
-from actrisk import DistributionFitter, load_config
+from actsim import DistributionFitter, load_config
 import numpy as np
 
 # Load config

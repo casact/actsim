@@ -3,8 +3,8 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "actrisk"
-version = "0.1.0.6"
+name = "actsim"
+version = "0.1.0.0"
 description = "Of the Actuary, By the Actuary, For the Actuary: A ZNSTARS Python package for actuarial risk modeling and simulation"
 authors = [
     { name = "Juntao Zhang"},
@@ -23,11 +23,11 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/jzhng105/actrisk"
-Documentation = "https://github.com/jzhng105/actrisk/docs"
+Homepage = "https://github.com/jzhng105/actsim"
+Documentation = "https://github.com/jzhng105/actsim/docs"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
 
 [tool.setuptools.package-data]
-actrisk = ["config.yaml"]
+actsim = ["config.yaml"]
