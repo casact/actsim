@@ -1,6 +1,6 @@
-# ActRisk
+# ActSim
 
-[![PyPI version](https://badge.fury.io/py/actrisk.svg)](https://badge.fury.io/py/actrisk)
+[![PyPI version](https://badge.fury.io/py/ActSim.svg)](https://badge.fury.io/py/ActSim)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
@@ -19,29 +19,29 @@ A Python package for actuarial risk modeling and simulation.
 ### From PyPI (recommended)
 
 ```bash
-pip install actrisk
+pip install ActSim
 ```
 
 ### From Source
 
 ```bash
-git clone https://github.com/jzhng105/actrisk.git
-cd actrisk
+git clone https://github.com/jzhng105/ActSim.git
+cd ActSim
 pip install -e .
 ```
 
 ### Development Installation
 
 ```bash
-git clone https://github.com/jzhng105/actrisk.git
-cd actrisk
+git clone https://github.com/jzhng105/ActSim.git
+cd ActSim
 pip install -e .[dev]
 ```
 
 ## Quick Start
 
 ```python
-from actrisk import load_config, DistributionFitter
+from ActSim import load_config, DistributionFitter
 from actstats import actuarial as act
 
 # Load configuration
@@ -83,7 +83,7 @@ config = load_config()
 # ---------------------------------------------
 # Import required modules
 # ---------------------------------------------
-from actrisk import load_config, DistributionFitter
+from ActSim import load_config, DistributionFitter
 from actstats import actuarial as act
 
 # ---------------------------------------------
@@ -98,7 +98,7 @@ freq_data = act.poisson.rvs(10, 1000)
 # ---------------------------------------------
 # 2. Load Configuration
 # ---------------------------------------------
-# This loads distribution lists and metrics from the actrisk config file
+# This loads distribution lists and metrics from the ActSim config file
 config = load_config()
 
 # ---------------------------------------------
@@ -178,7 +178,7 @@ freq_fitter.summary()
 # ---------------------------------------------
 # 1. Import Required Modules
 # ---------------------------------------------
-from actrisk import StochasticSimulator
+from ActSim import StochasticSimulator
 from actstats import actuarial as act
 
 # ---------------------------------------------
@@ -310,7 +310,7 @@ Sample multi-line distribution json file
 
 ```python
 import pandas as pd
-from actrisk import StochasticSimulator
+from ActSim import StochasticSimulator
 
 ##### Generate correlated mutivariate distribution
 corr_matrix_file = 'examples/correlated_sim/corr_matrix.csv'
@@ -332,7 +332,7 @@ print(correlation_matrix)
 ##########################################
 import pandas as pd
 import numpy as np
-from actrisk import ClaimSimulator
+from ActSim import ClaimSimulator
 
 # Simulate policy characteristics
 policies = pd.DataFrame({
@@ -404,8 +404,8 @@ claim_sim.save_claim_development('sample_file_path')
 
 ```bash
 # Clone the repository
-git clone https://github.com/jzhng105/actrisk.git
-cd actrisk
+git clone https://github.com/jzhng105/ActSim.git
+cd ActSim
 
 # Create virtual environment
 python -m venv venv
@@ -433,22 +433,22 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Citation
 
-If you use ActRisk in your research, please cite:
+If you use ActSim in your research, please cite:
 
 ```bibtex
-@software{actrisk2025,
-  title={ActRisk: A Python package for actuarial risk modeling and simulation},
+@software{ActSim2025,
+  title={ActSim: A Python package for actuarial risk modeling and simulation},
   author={Juntao Zhang},
   year={2025},
-  url={https://github.com/jzhng105/actrisk}
+  url={https://github.com/jzhng105/ActSim}
 }
 ```
 
 ## Support
 
 - **Documentation**: [docs/](docs/)
-- **Issues**: [GitHub Issues](https://github.com/jzhng105/actrisk/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/jzhng105/actrisk/discussions)
+- **Issues**: [GitHub Issues](https://github.com/jzhng105/ActSim/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/jzhng105/ActSim/discussions)
 
 ## Changelog
 
