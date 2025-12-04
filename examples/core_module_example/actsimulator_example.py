@@ -22,6 +22,8 @@ print("80th percentile of Poisson(10):", quantile_80)
 # ---------------------------------------------
 # 3. Initialize Simulator with Different Levels of Complexity
 # ---------------------------------------------
+dist = act.lognormal
+dist(*sev_params).np_rvs(size=10)
 
 # With copula and correlation settings
 simulator = StochasticSimulator(freq_dist, freq_params, sev_dist, sev_params, 10000, True, 1234, 0.6, 'frank', 0.6)
