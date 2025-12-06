@@ -1,7 +1,7 @@
 # ---------------------------------------------
 # Import required modules
 # ---------------------------------------------
-from actrisk import load_config, DistributionFitter
+from actsim import load_config, DistributionFitter
 from actstats import actuarial as act
 
 # ---------------------------------------------

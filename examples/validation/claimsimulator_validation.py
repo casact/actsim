@@ -4,7 +4,7 @@
 import pandas as pd
 import numpy as np
 import scipy.stats as stats
-from actrisk import ClaimSimulator
+from actsim import ClaimSimulator
 
 # Simulate policy characteristics
 policies = pd.DataFrame({

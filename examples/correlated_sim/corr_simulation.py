@@ -1,5 +1,5 @@
 import pandas as pd
-from actrisk import StochasticSimulator
+from actsim import StochasticSimulator
 
 ##### Generate correlated mutivariate distribution
 corr_matrix_file = 'examples/correlated_sim/corr_matrix.csv'

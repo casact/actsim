@@ -1,7 +1,7 @@
 # ---------------------------------------------
 # 1. Import Required Modules
 # ---------------------------------------------
-from actrisk import StochasticSimulator
+from actsim import StochasticSimulator
 from actstats import actuarial as act
 
 # ---------------------------------------------
