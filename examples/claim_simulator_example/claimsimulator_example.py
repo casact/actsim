@@ -3,7 +3,7 @@
 ##########################################
 import pandas as pd
 import numpy as np
-from actrisk import ClaimSimulator 
+from actsim import ClaimSimulator 
 
 # Simulate policy characteristics
 policies = pd.DataFrame({
@@ -11,7 +11,7 @@ policies = pd.DataFrame({
     'freq_dist': 'poisson',
     'freq_params': list(zip(np.random.uniform(0.6, 0.8, 100).round(2),)), 
     'sev_dist': 'lognormal',
-    'sev_params': list(zip(np.random.uniform(0.8, 1.2, 100).round(2), np.random.uniform(0.3, 0.7, 100).round(2))),
+    'sev_params': list(zip(np.random.uniform(8, 12, 100).round(2), np.random.uniform(0.3, 0.7, 100).round(2))),
     'start_date': pd.Timestamp('2023-01-01'),
     'end_date': pd.Timestamp('2023-12-31'),
 })
