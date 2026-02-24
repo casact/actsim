@@ -17,12 +17,17 @@ class ClaimSimulator:
         self.policies = policies_df.copy()   
         self.keep_all = True     
         self.seed = random_seed
+        self.rng = np.random.default_rng(random_seed) # Limit use of random seed to current code
         self.correlation = correlation
         self.copula_type = copula_type
         self.copula_param = copula_param
         self.claim_data = None
         np.random.seed(random_seed)
         self._validate_inputs()
+
+    # ------------------------------------------------------------------ #
+    #  Validation & preparation                                            #
+    # ------------------------------------------------------------------ #
 
     def _validate_inputs(self):
         required_columns = {
@@ -38,19 +43,61 @@ class ClaimSimulator:
         if not self.policies['sev_params'].apply(lambda x: isinstance(x, tuple)).all():
             raise ValueError("All sev_params must be tuples (e.g., (mu, sigma))")
 
+    def _prepare_policy_dates(self) -> None:
+        """Parse and validate policy date columns; add convenience columns."""
+        self.policies["start_date"] = pd.to_datetime(self.policies["start_date"])
+        self.policies["end_date"] = pd.to_datetime(self.policies["end_date"])
+
+        invalid = self.policies[self.policies["end_date"] <= self.policies["start_date"]]
+        if not invalid.empty:
+            raise ValueError(
+                f"end_date must be after start_date for policies: "
+                f"{invalid['policy_id'].tolist()}"
+            )
+
+        # Fractional exposure within each calendar year [0, 1]
+        self.policies["_year_start_frac"] = self.policies["start_date"].apply(
+            lambda d: self._date_to_year_fraction(d)
+        )
+        self.policies["_year_end_frac"] = self.policies["end_date"].apply(
+            lambda d: self._date_to_year_fraction(d)
+        )
+        # Exposure in years (used for frequency scaling)
+        self.policies["_exposure_years"] = (
+            (self.policies["end_date"] - self.policies["start_date"]).dt.days / 365.25
+        )
+    # ------------------------------------------------------------------ #
+    #  Helpers                                                             #
+    # ------------------------------------------------------------------ #
+
+    @staticmethod
+    def _date_to_year_fraction(d: pd.Timestamp) -> float:
+        """Return the fraction of the year elapsed at date d (0 = Jan 1, ~1 = Dec 31)."""
+        start_of_year = pd.Timestamp(year=d.year, month=1, day=1)
+        start_of_next = pd.Timestamp(year=d.year + 1, month=1, day=1)
+        return (d - start_of_year) / (start_of_next - start_of_year)
+
+    @staticmethod
+    def _shift_date(date_obj: pd.Timestamp, year_shift: int) -> pd.Timestamp:
+        try:
+            return date_obj.replace(year=date_obj.year + year_shift)
+        except ValueError:  # Feb 29 in non-leap year
+            return date_obj.replace(month=2, day=28, year=date_obj.year + year_shift)
+
+    # ------------------------------------------------------------------ #
+    #  Simulation: claim counts and severities                            #
+    # ------------------------------------------------------------------ #
+
     def group_policies(self):
-        return self.policies.groupby(['freq_dist', 'sev_dist', 'freq_params', 'sev_params'])
+        return self.policies.groupby(['freq_dist', 'sev_dist', 'freq_params', 'sev_params'], sort=False)
 
     def simulate_claims(self):
         grouped_policies = self.group_policies()
         simulated_claims = []
 
         for group_params, group_df in grouped_policies:
-            freq_dist = group_params[0]
-            sev_dist = group_params[1]
-            freq_params = group_params[2]
-            sev_params = group_params[3]
-
+            freq_dist, sev_dist, freq_params, sev_params = group_params
+            group_df = group_df.reset_index(drop=True)
             n_policies = len(group_df)
 
             simulator = StochasticSimulator(
@@ -69,41 +116,77 @@ class ClaimSimulator:
             simulator.gen_agg_simulations()
 
             if simulator.all_simulations.empty:
-                group_claims = pd.DataFrame(columns=['year', 'event_id', 'yearly_event_id', 'amount'])
-            else:
-                group_claims = simulator.all_simulations.copy()
-                group_claims['policy_id'] = group_df['policy_id'].values[group_claims['year']-1]
+                continue
+
+            group_claims = simulator.all_simulations.copy()
+
+            # 'year' in the simulator output is a 1-based policy index within
+            # this group — map it to the actual policy metadata
+            policy_index = group_claims["year"] - 1  # 0-based
+            group_claims["policy_id"] = group_df.loc[policy_index, "policy_id"].values
+            group_claims["start_date"] = group_df.loc[
+                policy_index, "start_date"
+            ].values
+            group_claims["end_date"] = group_df.loc[
+                policy_index, "end_date"
+            ].values
 
             simulated_claims.append(group_claims)
 
-        claims_df = pd.concat(simulated_claims, ignore_index=True)
-        self.claim_data = claims_df
+        if not simulated_claims:
+            self.claim_data = pd.DataFrame(
+                columns=[
+                    "year", "event_id", "yearly_event_id", "amount",
+                    "policy_id", "start_date", "end_date",
+                ]
+            )
+            return
 
-    def simulate_dates_nhpp(self, lambda0=10, alpha=0.5, phase=0, T=1):
-        def simulate_group_dates(group):
-            n = len(group)
-            nhpp = act.nonhomogeneous_poisson(lambda0, alpha, phase, T)
-            fractions = nhpp.rvs(n_events=n)
-            year_val = group['year'].iloc[0]
-            group = group.copy()
-            group['date'] = [fraction_to_date_full(t, year=year_val) for t in fractions]
-            return group
+        self.claim_data = pd.concat(simulated_claims, ignore_index=True)
 
-        self.claim_data = self.claim_data.groupby('year', group_keys=False).apply(simulate_group_dates)
+    # ------------------------------------------------------------------ #
+    #  Date simulation                                                     #
+    # ------------------------------------------------------------------ #
 
-    @staticmethod
-    def shift_date(date_obj, year_shift):
-        try:
-            return date_obj.replace(year=date_obj.year + year_shift)
-        except ValueError:
-            return date_obj.replace(month=2, day=28, year=date_obj.year + year_shift)
+    def simulate_dates_nhpp(
+        self, lambda0: float = 10, alpha: float = 0.5, phase: float = 0, T: float = 1
+    ) -> None:
+        """
+        Assign an incurred date to each claim using a Non-Homogeneous Poisson
+        Process, constrained to each policy's active window within its year.
+        """
+        if self.claim_data is None or self.claim_data.empty:
+            raise RuntimeError("Call simulate_claims() before simulate_dates_nhpp().")
 
-    def apply_shifted_dates(self, start_year=2023):
-        self.claim_data['shifted_date'] = self.claim_data['date'].apply(
-            lambda d: self.shift_date(d, start_year)
+        nhpp = act.nonhomogeneous_poisson(lambda0, alpha, phase, T)
+
+        def _assign_dates(row: pd.Series) -> pd.Timestamp:
+            policy_start = pd.Timestamp(row["start_date"])
+            policy_end = pd.Timestamp(row["end_date"])
+
+            # Draw a fraction in [0, 1] from the NHPP and scale to the policy window
+            frac = nhpp.rvs(n_events=1)[0]
+            policy_duration = (policy_end - policy_start).days
+            claim_date = policy_start + pd.Timedelta(days=frac * policy_duration)
+
+            # Clamp to policy window (defensive)
+            return max(policy_start, min(claim_date, policy_end))
+
+        self.claim_data["incurred_date"] = self.claim_data.apply(
+            _assign_dates, axis=1
         )
-        self.claim_data.rename(columns={'shifted_date': 'incurred_date', 'amount': 'ultimate_loss'}, inplace=True)
-        self.claim_data['incurred_date'] = self.claim_data['incurred_date'].astype('datetime64[s]')
+        self.claim_data["incurred_date"] = self.claim_data["incurred_date"].astype(
+            "datetime64[s]"
+        )
+        # Clean up intermediary columns kept only for date simulation
+        self.claim_data.drop(
+            columns=["start_date", "end_date"], inplace=True, errors="ignore"
+        )
+        self.claim_data.rename(columns={"amount": "ultimate_loss"}, inplace=True)
+
+    # ------------------------------------------------------------------ #
+    #  Claim development (triangle)                                        #
+    # ------------------------------------------------------------------ #
 
     def simulate_claim_development(self, base_LDFs, volatility=0.1, cumulative_factor=1.0):
         development_data = []
@@ -138,4 +221,3 @@ class ClaimSimulator:
 
     def save_claim_development(self, filepath='examples/reserving_analysis/claim_development_random.csv'):
         self.claim_development.to_csv(filepath, index=False)
-
