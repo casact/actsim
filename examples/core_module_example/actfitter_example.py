@@ -16,7 +16,7 @@ freq_data = act.poisson.rvs(10, 1000)
 # ---------------------------------------------
 # 2. Load Configuration
 # ---------------------------------------------
-# This loads distribution lists and metrics from the actrisk config file
+# This loads distribution lists and metrics from the actsim config file
 config = load_config()
 
 # ---------------------------------------------

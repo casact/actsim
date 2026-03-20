@@ -17,7 +17,7 @@ class Config:
         if file_path is None:
             # Use the default config file from the package
             try:
-                file_path = pkg_resources.resource_filename('actrisk', 'config.yaml')
+                file_path = pkg_resources.resource_filename('actsim', 'config.yaml')
             except Exception as e:
                 warnings.warn(f"Could not find default config file: {e}")
                 file_path = "config.yaml"  # Fallback to local file

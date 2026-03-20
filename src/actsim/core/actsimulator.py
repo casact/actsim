@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from statsmodels.distributions.copula.api import (
     GaussianCopula, ClaytonCopula, FrankCopula, GumbelCopula)
-from actrisk.utils.utils import timing_decorator
+from actsim.utils.utils import timing_decorator
 from actstats import actuarial as act
 # from functools import cached_property # consider adding cached property
 
