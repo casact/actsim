@@ -54,7 +54,7 @@ pip install -e .[dev]
 ```
 
 
-Dependencies include NumPy, SciPy, pandas, matplotlib, seaborn, statsmodels, and `actstats/actrisk`. Make sure these packages are installed when building from source.
+Dependencies include NumPy, SciPy, pandas, matplotlib, seaborn, statsmodels, and `actstats/actsim`. Make sure these packages are installed when building from source.
 
 
 ## 3. Configuration management
@@ -321,10 +321,6 @@ Call `simulate_claims()` to simulate the claim counts and severities for each po
 
 To assign occurrence dates, use `simulate_dates_nhpp(lambda0, alpha, phase, T)` which samples event times from a non‑homogeneous Poisson process with baseline intensity `lambda0`, seasonality amplitude `alpha`, phase shift `phase` and exposure period `T`. The function uses `actstats` to generate fractions of the exposure period and maps them to dates via `fraction_to_date_full`.
 
-
-After generating fractions, call `apply_shifted_dates(start_year)` to shift the simulated dates into a calendar year (for example 2023). This method also renames columns so that the claim amounts are stored under `ultimate_loss`.
-
-
 ### 6.4. Simulating claim development
 
 
@@ -359,7 +355,7 @@ freq_data = act.poisson.rvs(10, 1000)
 # ---------------------------------------------
 # 2. Load Configuration
 # ---------------------------------------------
-# This loads distribution lists and metrics from the actrisk config file
+# This loads distribution lists and metrics from the actsim config file
 config = load_config()
 
 # ---------------------------------------------

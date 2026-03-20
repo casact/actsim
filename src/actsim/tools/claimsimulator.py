@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from typing import Optional
-from actrisk.core.actsimulator import StochasticSimulator
+from actsim.core.actsimulator import StochasticSimulator
 from actstats import fraction_to_date_full
 from actstats import actuarial as act
 
