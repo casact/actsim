@@ -366,10 +366,6 @@ T = 1            # Duration of the exposure in years
 # Simulate claim occurrence dates using a seasonal NHPP
 claim_sim.simulate_dates_nhpp(lambda0, alpha, phase, T)
 
-# Shift claim dates so that the simulation aligns with calendar year starting from 2023
-start_year = 2023
-claim_sim.apply_shifted_dates(start_year)
-
 # Define base loss development factors (LDFs) by development month
 base_LDFs = {
     0: 2,     # Initial LDF at 0 months
