@@ -1,0 +1,173 @@
+\documentclass[11pt,letterpaper]{report}
+
+% =====================================================================
+% ActSim Manual
+% A Python-Based Actuarial Simulation Package
+% =====================================================================
+
+% --- Page geometry --------------------------------------------------
+\usepackage[margin=1in,headheight=14pt]{geometry}
+
+% --- Math ----------------------------------------------------------
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{mathtools}
+
+% --- Tables --------------------------------------------------------
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{tabularx}
+
+% --- Lists ---------------------------------------------------------
+\usepackage{enumitem}
+
+% --- Graphics ------------------------------------------------------
+\usepackage{graphicx}
+\usepackage{xcolor}
+
+% --- Hyperlinks and bookmarks --------------------------------------
+\usepackage[colorlinks=true,
+            linkcolor=blue!60!black,
+            urlcolor=blue!60!black,
+            citecolor=blue!60!black,
+            bookmarksnumbered=true]{hyperref}
+
+% --- Code listings -------------------------------------------------
+\usepackage{listings}
+
+% Define a shared listing style
+\definecolor{codebg}{RGB}{248,248,248}
+\definecolor{codeframe}{RGB}{220,220,220}
+\definecolor{codekw}{RGB}{0,0,180}
+\definecolor{codestr}{RGB}{0,128,0}
+\definecolor{codecom}{RGB}{120,120,120}
+
+\lstdefinestyle{pythonstyle}{
+    language=Python,
+    backgroundcolor=\color{codebg},
+    rulecolor=\color{codeframe},
+    frame=single,
+    framesep=4pt,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{codekw}\bfseries,
+    stringstyle=\color{codestr},
+    commentstyle=\color{codecom}\itshape,
+    showstringspaces=false,
+    breaklines=true,
+    breakatwhitespace=true,
+    columns=flexible,
+    numbers=none,
+    tabsize=4,
+    keepspaces=true,
+    upquote=true,
+    aboveskip=10pt,
+    belowskip=8pt
+}
+
+\lstdefinestyle{bashstyle}{
+    language=bash,
+    backgroundcolor=\color{codebg},
+    rulecolor=\color{codeframe},
+    frame=single,
+    framesep=4pt,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{codekw}\bfseries,
+    stringstyle=\color{codestr},
+    commentstyle=\color{codecom}\itshape,
+    showstringspaces=false,
+    breaklines=true,
+    columns=flexible,
+    numbers=none,
+    tabsize=4,
+    aboveskip=10pt,
+    belowskip=8pt
+}
+
+\lstset{style=pythonstyle}
+
+% --- Headers and footers -------------------------------------------
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\nouppercase{\leftmark}}
+\fancyhead[R]{ActSim Manual}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% --- Title formatting ----------------------------------------------
+\usepackage{titlesec}
+\titleformat{\chapter}[display]
+  {\normalfont\Huge\bfseries}
+  {\chaptertitlename\ \thechapter}
+  {20pt}
+  {\Huge}
+
+% --- Custom commands -----------------------------------------------
+\newcommand{\actsim}{\textsf{ActSim}\xspace}
+\usepackage{xspace}
+
+% --- Typesetting tweaks: allow more flexibility for long \texttt{} ---
+\emergencystretch=2em
+\hyphenpenalty=2000
+\tolerance=2000
+
+% =====================================================================
+% Title page
+% =====================================================================
+\title{
+    \vspace{-2cm}
+    \Huge\textbf{ActSim Manual}\\[0.5em]
+    \large A Python-Based Actuarial Risk Modelling and Simulation Package\\[0.3em]
+    \normalsize Version 0.1.0
+}
+\author{Juntao Zhang}
+\date{\today}
+
+% =====================================================================
+% Document
+% =====================================================================
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+\noindent ActSim is a Python-based actuarial simulation package designed for
+distribution fitting, stochastic risk modelling, synthetic claim generation, and
+actuarial validation and stress testing workflows. It is intended to support actuarial 
+risk analysis, catastrophe scenario testing, capital adequacy testing, loss 
+scenario analysis, and integration with triangle-based reserving workflows.
+
+\noindent This manual provides a structured reference for users, including a
+user guide, worked examples, API reference, validation notes, and contribution
+guidance. ActSim emphasises actuarial transparency, reproducibility, and
+practical applicability for both research and production environments.
+\end{abstract}
+
+\tableofcontents
+\clearpage
+
+% =====================================================================
+% Sections
+% =====================================================================
+\input{sections/introduction}
+\input{sections/installation}
+\input{sections/quick_start}
+\input{sections/core_concepts}
+\input{sections/actstats}
+\input{sections/distribution_fitter}
+\input{sections/stochastic_simulator}
+\input{sections/claim_simulator}
+\input{sections/claim_development}
+\input{sections/risk_metrics}
+\input{sections/chainladder_integration}
+\input{sections/worked_examples}
+\input{sections/validation}
+\input{sections/api_reference}
+\input{sections/contributing}
+\input{sections/citation}
+\input{sections/glossary}
+\input{sections/appendix}
+
+\end{document}

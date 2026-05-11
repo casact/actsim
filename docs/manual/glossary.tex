@@ -1,0 +1,95 @@
+\chapter{Glossary}
+\label{chap:glossary}
+
+\begin{description}[leftmargin=*,style=nextline]
+    \item[Accident year]
+        The calendar year in which a claim occurred.
+
+    \item[Aggregate loss]
+        The total loss across all claims in a simulation period.
+
+    \item[Aggregate Exceedance Probability (AEP)]
+        The probability that aggregate (annual) losses exceed a given
+        threshold. Reported as a function of return period in
+        catastrophe risk applications.
+
+    \item[Bornhuetter--Ferguson method]
+        A reserving method that combines an a priori expected ultimate
+        loss ratio with reported development. Available in the
+        \texttt{chainladder} package.
+
+    \item[Chain-ladder method]
+        A standard reserving technique that projects ultimate losses
+        from a triangle by applying age-to-age development factors.
+
+    \item[Claim development]
+        The evolution of a claim's reported or paid amount between its
+        date of occurrence and ultimate settlement.
+
+    \item[Copula]
+        A multivariate distribution function with uniform marginals,
+        used to introduce dependency between random variables while
+        preserving their marginal distributions.
+
+    \item[Cumulative development factor (CDF)]
+        The ratio of ultimate losses to losses at a given development
+        age. The product of LDFs from a given age through to ultimate.
+
+    \item[Development age]
+        The number of months elapsed since the start of an accident
+        period.
+
+    \item[Frequency]
+        The number of claims occurring during a specified period.
+
+    \item[Goodness-of-fit metric]
+        A statistic used to compare candidate distributions, such as
+        AIC, BIC, log-likelihood, chi-square, or Kolmogorov--Smirnov.
+
+    \item[Loss development factor (LDF)]
+        The ratio of losses at one development age to losses at the
+        previous age.
+
+    \item[Monte Carlo simulation]
+        A simulation technique that estimates the distribution of an
+        outcome by repeated random sampling.
+
+    \item[Non-homogeneous Poisson process (NHPP)]
+        A Poisson process with a time-varying intensity function.
+        Used in \actsim to assign occurrence dates to simulated
+        claims with seasonal patterns.
+
+    \item[Occurrence Exceedance Probability (OEP)]
+        The probability that the largest single-event loss in a year
+        exceeds a given threshold.
+
+    \item[Paid loss]
+        The cumulative amount paid on a claim at a given valuation
+        date.
+
+    \item[Random seed]
+        An integer that initialises a pseudo-random number generator.
+        Setting the seed makes simulations reproducible.
+
+    \item[Reported loss]
+        The sum of paid losses and case reserves on a claim at a given
+        valuation date.
+
+    \item[Severity]
+        The amount of loss associated with an individual claim.
+
+    \item[Tail Value at Risk (TVaR)]
+        The expected loss conditional on exceeding the VaR threshold,
+        also known as the conditional tail expectation.
+
+    \item[Triangle]
+        A standard actuarial data layout in which rows correspond to
+        accident periods and columns correspond to development ages.
+
+    \item[Ultimate loss]
+        The expected total cost of a claim once all development is
+        complete.
+
+    \item[Value at Risk (VaR)]
+        The quantile of a loss distribution at a given confidence level.
+\end{description}

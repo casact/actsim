@@ -1,0 +1,48 @@
+\chapter{Citation}
+\label{chap:citation}
+
+\section{Citing ActSim}
+
+If you use \actsim in research, internal actuarial analysis, or
+educational materials, please cite the package. A general-purpose
+citation is:
+
+\begin{quote}
+Zhang, J. \emph{ActSim: A Python-Based Actuarial Simulation Package}.
+GitHub repository, \url{https://github.com/jzhng105/actsim}.
+\end{quote}
+
+A BibTeX-style entry suitable for inclusion in academic work is:
+
+\begin{lstlisting}[style=bashstyle]
+@software{ActSim2025,
+    title  = {ActSim: A Python package for actuarial risk modeling
+              and simulation},
+    author = {Juntao Zhang},
+    year   = {2025},
+    url    = {https://github.com/jzhng105/actsim},
+}
+\end{lstlisting}
+
+If \actsim is later submitted to a CAS publication, e-Forum paper, or
+official research resource, this section will be updated to include
+the formal citation.
+
+\section{Citing Dependencies}
+
+\actsim relies on a number of open-source scientific Python libraries.
+Users who report results based on \actsim are encouraged to cite the
+underlying packages where appropriate, including:
+
+\begin{itemize}[leftmargin=*]
+    \item NumPy
+    \item SciPy
+    \item pandas
+    \item matplotlib
+    \item seaborn
+    \item statsmodels
+    \item chainladder (where used for reserving analyses)
+\end{itemize}
+
+Citing these dependencies acknowledges the work of the broader
+open-source ecosystem on which \actsim depends.

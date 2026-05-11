@@ -1,0 +1,219 @@
+\chapter{Validation and Testing}
+\label{chap:validation}
+
+\section{Why Validation Matters}
+
+A key objective of \actsim is to provide transparent and reproducible
+actuarial simulations. Without independent validation, simulation
+results are difficult to defend in audit, regulatory review, or
+peer review. This chapter describes the validation strategies that
+\actsim users should employ to verify that simulations behave as
+expected.
+
+The validation strategies described here cover frequency, severity,
+aggregate losses, claim development, triangle reconciliation, and
+reproducibility. Together, they form a baseline that should be
+sufficient for open-source review and CAS-style scrutiny.
+
+\section{Frequency Distribution Validation}
+
+For frequency validation, simulated claim counts should be compared
+against the theoretical expected count.
+
+For example, if claim frequency follows
+\[
+    N \sim \mathrm{Poisson}(\lambda),
+\]
+then $E[N] = \lambda$ and $\mathrm{Var}(N) = \lambda$. The simulated
+mean and variance of the claim counts should converge to $\lambda$ as
+the number of simulations $M$ increases. The Monte Carlo standard error
+on the simulated mean is approximately $\sqrt{\lambda / M}$.
+
+If a validation example uses $\lambda = 50$ with $M = 100{,}000$
+simulations, the simulated average claim count should be close to $50$,
+with a standard error of roughly $\sqrt{50/100000} \approx 0.022$. A
+simulated mean within a few standard errors of $50$ is consistent with
+correct implementation.
+
+For negative binomial frequencies, the analogous checks compare the
+simulated mean and variance against the theoretical $E[N]$ and
+$\mathrm{Var}(N)$, where the variance exceeds the mean.
+
+\section{Severity Distribution Validation}
+
+For severity validation, the simulated samples should match the moments
+and quantiles of the target distribution. For lognormal severity with
+parameters $\mu$ and $\sigma$,
+\[
+    E[X] = \exp\!\left( \mu + \frac{\sigma^{2}}{2} \right),
+    \qquad
+    \mathrm{Var}(X) = \big( \exp(\sigma^{2}) - 1 \big) \cdot \exp(2\mu + \sigma^{2}).
+\]
+
+The empirical mean, variance, and selected percentiles of the simulated
+severities should be close to these theoretical values. Larger sample
+sizes are required for accurate matching of upper percentiles.
+
+A typical severity validation script:
+
+\begin{lstlisting}[style=pythonstyle]
+import numpy as np
+from actstats import actuarial as act
+
+mu, sigma = 10, 0.5
+n = 1_000_000
+
+samples = act.lognormal(mu, sigma).rvs(size=n)
+
+theoretical_mean = np.exp(mu + sigma**2 / 2)
+print("Theoretical mean:", theoretical_mean)
+print("Simulated mean:",   samples.mean())
+print("Simulated 95%:",    np.percentile(samples, 95))
+\end{lstlisting}
+
+\section{Aggregate Loss Validation}
+
+The compound expectation
+\[
+    E[S] = E[N] \cdot E[X]
+\]
+provides a simple consistency check on aggregate loss simulations. The
+variance under independence is
+\[
+    \mathrm{Var}(S) = E[N] \cdot \mathrm{Var}(X)
+                    + \mathrm{Var}(N) \cdot (E[X])^{2}.
+\]
+Both quantities should be matched (within sampling error) by simulation
+output for a sufficient number of simulations.
+
+When dependency is introduced via correlation or copulas, the simulated
+mean should remain close to $E[N] \cdot E[X]$ if the marginal
+distributions of $N$ and $X$ are unchanged. The variance, however,
+should change in a direction consistent with the imposed dependency.
+
+\section{Claim Development Validation}
+
+For each simulated claim with ultimate loss $U$ and a deterministic
+LDF schedule $\{\mathrm{LDF}_a\}$, the expected reported loss at age
+$a$ is
+\[
+    E[L_a] = \frac{U}{\mathrm{CDF}_a},
+\]
+where $\mathrm{CDF}_a$ is the cumulative product of LDFs from age $a$
+to ultimate.
+
+When stochastic LDFs are used, the same expectation holds approximately,
+because the multiplicative noise has mean $1$. The simulated reported
+losses at each age should average to the deterministic pattern, with
+the spread controlled by the volatility parameter.
+
+A simple validation check:
+
+\begin{lstlisting}[style=pythonstyle]
+import pandas as pd
+
+# After running simulate_claim_development:
+expected_pattern = (
+    claim_sim.claim_development
+    .groupby("development_month")["incurred_loss"]
+    .mean()
+)
+print(expected_pattern)
+\end{lstlisting}
+
+The mean reported loss should grow monotonically with development age
+and should approach the simulated ultimate at the latest age.
+
+\section{Triangle Reconciliation}
+
+Once the simulated claim development data have been aggregated into a
+loss triangle and analysed using \texttt{chainladder}, the projected
+ultimates can be reconciled against the underlying simulated ultimates.
+
+\begin{lstlisting}[style=pythonstyle]
+ultimate_simulated = (
+    claim_sim.claim_data
+    .groupby(claim_sim.claim_data["incurred_date"].dt.year)["ultimate_loss"]
+    .sum()
+)
+
+ultimate_chainladder = model.ultimate_
+
+print("Simulated ultimate:",   ultimate_simulated)
+print("Chain-ladder ultimate:", ultimate_chainladder)
+\end{lstlisting}
+
+For a well-specified simulation with a sufficient number of claims, the
+two should agree within sampling error. Persistent differences indicate
+either a misspecification of the LDF schedule or a sample size that is
+too small for the chain-ladder method to converge.
+
+\section{Reproducibility Using Random Seeds}
+
+\actsim runs are fully deterministic given a random seed. The same
+input (policy table, distributional specification, seed) produces the
+same output across runs. This guarantee is achieved by passing the seed
+through to \texttt{numpy}'s random number generator at construction.
+
+To verify reproducibility:
+
+\begin{lstlisting}[style=pythonstyle]
+from actsim import StochasticSimulator
+
+def run(seed):
+    sim = StochasticSimulator(
+        "poisson", (10,), "lognormal", (10, 0.5),
+        num_sim=10000, keep_all=False, seed=seed,
+    )
+    sim.gen_agg_simulations()
+    return sim.results.sum()
+
+assert run(1234) == run(1234)
+\end{lstlisting}
+
+When sharing simulation results, the seed used to produce them should
+be recorded alongside the output.
+
+\section{Statistical Tests}
+
+In addition to mean-and-variance checks, the user may apply formal
+statistical tests:
+
+\begin{itemize}[leftmargin=*]
+    \item Kolmogorov--Smirnov test on simulated severities against the
+          target CDF.
+    \item Chi-square goodness-of-fit on simulated frequencies binned
+          into integer counts.
+    \item Anderson--Darling test for tail behaviour.
+\end{itemize}
+
+These tests are most informative when validating a particular
+distributional implementation. They are less useful for assessing the
+overall realism of a model relative to historical data, where domain
+judgement is essential.
+
+\section{Known Limitations}
+
+The current implementation has several limitations that users should be
+aware of:
+
+\begin{itemize}[leftmargin=*]
+    \item The Kolmogorov--Smirnov statistic is computed via
+          \texttt{scipy.stats.kstest} on the data and the fitted CDF.
+          For large sample sizes, this can take longer to compute than
+          AIC or BIC.
+    \item Chi-square statistics in \texttt{DistributionFitter} are
+          computed by binning observed and expected frequencies; the
+          choice of bin count affects the resulting statistic.
+    \item The current copula implementation supports a fixed set of
+          families (Gaussian, Frank, Gumbel, Clayton). Other families
+          can be added but require a code change.
+    \item Multivariate dependency simulation currently supports
+          marginal distributions but does not retain claim-level data
+          beyond the marginal totals. This limits some downstream
+          validations.
+\end{itemize}
+
+These limitations are documented to allow reviewers to focus their
+scrutiny on the parts of the package that may behave unexpectedly. The
+maintainer welcomes contributions that address them.

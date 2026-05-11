@@ -1,0 +1,158 @@
+\chapter{Risk Metrics}
+\label{chap:risk_metrics}
+
+\section{Overview}
+
+Once a simulation has been run, the analyst typically wants to summarise
+the loss distribution using a small number of risk metrics. \actsim
+provides functions to compute the most widely used metrics directly from
+simulated data.
+
+This chapter defines each metric formally and describes how to obtain it
+from the \texttt{StochasticSimulator} class.
+
+\section{Mean and Standard Deviation}
+
+The mean and standard deviation of the simulated aggregate losses are the
+simplest summary statistics:
+\[
+    \bar{S} = \frac{1}{M} \sum_{m=1}^{M} S_m,
+    \qquad
+    \hat{\sigma}_S = \sqrt{\frac{1}{M-1} \sum_{m=1}^{M} (S_m - \bar{S})^{2}},
+\]
+where $S_m$ is the aggregate loss in simulation $m$ and $M$ is the
+number of simulations. Both can be obtained directly from the
+\texttt{results} attribute of the simulator:
+
+\begin{lstlisting}[style=pythonstyle]
+mean_loss = simulator.results.mean()
+std_loss  = simulator.results.std()
+\end{lstlisting}
+
+\section{Percentiles}
+
+A percentile of the simulated aggregate losses is computed using
+\texttt{calc\_agg\_percentile}:
+
+\begin{lstlisting}[style=pythonstyle]
+p95 = simulator.calc_agg_percentile(95)
+p99 = simulator.calc_agg_percentile(99)
+\end{lstlisting}
+
+\section{Value at Risk (VaR)}
+
+The Value at Risk at confidence level $q \in (0, 1)$ is defined as
+the $q$-th quantile of the aggregate loss distribution:
+\[
+    \mathrm{VaR}_q(S) = \inf \{ s : F_S(s) \geq q \},
+\]
+where $F_S$ is the cumulative distribution function of $S$. In a
+simulation context, $\mathrm{VaR}_q$ is estimated by the empirical
+$q$-quantile of the simulated values. The
+\texttt{analyze\_results} method returns VaR at user-specified
+quantiles:
+
+\begin{lstlisting}[style=pythonstyle]
+metrics = simulator.analyze_results(quantiles=[0.95, 0.99])
+print(metrics["VaR"])
+\end{lstlisting}
+
+\section{Tail Value at Risk (TVaR)}
+
+The Tail Value at Risk, also known as the conditional tail expectation
+or expected shortfall, is the expected loss conditional on exceeding
+the corresponding VaR threshold:
+\[
+    \mathrm{TVaR}_q(S) = \mathbb{E}\big[ S \mid S > \mathrm{VaR}_q(S) \big].
+\]
+
+In simulation, $\mathrm{TVaR}_q$ is estimated by averaging the
+simulated values that exceed the empirical $\mathrm{VaR}_q$.
+
+\begin{lstlisting}[style=pythonstyle]
+metrics = simulator.analyze_results(quantiles=[0.95, 0.99])
+print(metrics["TVaR"])
+\end{lstlisting}
+
+TVaR is a coherent risk measure and is preferred over VaR for
+applications where the behaviour of the loss distribution beyond
+the VaR threshold is material.
+
+\section{Aggregate Exceedance Probability (AEP)}
+
+The Aggregate Exceedance Probability at level $q$ is the $q$-th
+percentile of the \emph{aggregate} (annual) loss distribution:
+\[
+    \mathrm{AEP}_q = \inf \{ s : F_S(s) \geq q \}.
+\]
+For a single-period simulation, AEP and VaR coincide. AEP is widely
+reported in catastrophe risk and reinsurance contexts as a function of
+return period, where return period $T$ corresponds to confidence level
+$q = 1 - 1/T$.
+
+\begin{lstlisting}[style=pythonstyle]
+metrics = simulator.analyze_results(quantiles=[0.95, 0.99])
+print(metrics["aep"])
+\end{lstlisting}
+
+\section{Occurrence Exceedance Probability (OEP)}
+
+The Occurrence Exceedance Probability at level $q$ is the $q$-th
+percentile of the \emph{maximum single-event} loss within a year. If
+$M$ is the maximum single-event loss in a year,
+\[
+    \mathrm{OEP}_q = \inf \{ m : F_M(m) \geq q \}.
+\]
+
+OEP requires event-level data and therefore can only be computed when
+the simulator is run with \texttt{keep\_all=True}. In that case
+\texttt{analyze\_results} returns OEP alongside the other metrics:
+
+\begin{lstlisting}[style=pythonstyle]
+simulator = StochasticSimulator(
+    "poisson", (10,),
+    "lognormal", (10, 0.5),
+    num_sim=10000,
+    keep_all=True,
+    seed=1234,
+)
+simulator.gen_agg_simulations()
+metrics = simulator.analyze_results(quantiles=[0.95, 0.99])
+print(metrics["oep"])
+\end{lstlisting}
+
+\section{Putting it Together}
+
+A typical risk-metrics report contains VaR, TVaR, AEP, and OEP at a
+small set of confidence levels. The example below produces such a
+report and prints it as a single DataFrame.
+
+\begin{lstlisting}[style=pythonstyle]
+quantiles = [0.5, 0.75, 0.9, 0.95, 0.99, 0.995]
+report = simulator.analyze_results(quantiles=quantiles)
+print(report.round(2))
+\end{lstlisting}
+
+The output table contains one row per quantile and one column per
+metric. This format is convenient for inclusion in technical memos and
+audit packages.
+
+\section{Choice of Metric}
+
+Different metrics emphasise different aspects of the loss distribution:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{VaR} is simple and widely understood, but does not
+          describe behaviour beyond the threshold.
+    \item \textbf{TVaR} captures tail behaviour and is preferred in
+          frameworks that require coherent risk measures.
+    \item \textbf{AEP and OEP} are particularly common in
+          property-catastrophe and reinsurance contexts, where annual
+          aggregate exposure and the largest single event need to be
+          distinguished.
+\end{itemize}
+
+The choice of metric should be driven by the regulatory framework, the
+contract structure, and the question being asked. \actsim makes all of
+these metrics available from a single simulation run, allowing the
+analyst to report whichever combination is most relevant.

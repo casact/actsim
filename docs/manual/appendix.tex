@@ -1,0 +1,209 @@
+\chapter{Appendix}
+\label{chap:appendix}
+
+% =====================================================================
+\section{Supported Distributions}
+\label{app:supported_distributions}
+
+The following table summarises the distributions supported by
+\actsim, their parameters as expected by the package, and typical
+actuarial usage.
+
+\begin{longtable}{p{0.18\textwidth}p{0.27\textwidth}p{0.45\textwidth}}
+\toprule
+\textbf{Name} & \textbf{Parameters} & \textbf{Typical Usage} \\
+\midrule
+\endhead
+\texttt{normal}            & $(\mu, \sigma)$       & General-purpose continuous fits, sensitivity analyses. \\
+\texttt{logistic}          & $(\mathrm{loc}, \mathrm{scale})$ & Heavy-shouldered alternative to normal. \\
+\texttt{exponential}       & $(\lambda)$           & Inter-arrival times, simple severity benchmarks. \\
+\texttt{gamma}             & $(\mathrm{shape}, \mathrm{scale})$ & Common severity model with closed-form moments. \\
+\texttt{beta}              & $(\alpha, \beta)$     & Loss ratios, bounded severities. \\
+\texttt{lognormal}         & $(\mu, \sigma)$       & Most common severity model in property/casualty. \\
+\texttt{weibull}           & $(\mathrm{shape}, \mathrm{scale})$ & Survival-style models, alternative severity model. \\
+\texttt{pareto}            & $(\mathrm{shape}, \mathrm{scale})$ & Heavy-tailed severities, large-loss modelling. \\
+\texttt{uniform}           & $(\mathrm{low}, \mathrm{high})$ & Sensitivity testing, simple stylised examples. \\
+\texttt{poisson}           & $(\lambda)$           & Standard frequency model. \\
+\texttt{negative binomial} & $(r, p)$              & Over-dispersed frequency model. \\
+\bottomrule
+\end{longtable}
+
+% =====================================================================
+\section{Parameter Conventions}
+\label{app:parameter_conventions}
+
+The parameter conventions used by \actsim follow those of
+\texttt{actstats}, which provides actuarial-style parametrisations.
+For users who are familiar with \texttt{scipy.stats}, the most common
+differences are summarised below.
+
+\begin{longtable}{p{0.22\textwidth}p{0.36\textwidth}p{0.32\textwidth}}
+\toprule
+\textbf{Distribution} & \textbf{actstats} & \textbf{scipy.stats} \\
+\midrule
+\endhead
+Lognormal &
+    $(\mu, \sigma)$ where $\ln X \sim \mathcal{N}(\mu, \sigma^{2})$ &
+    \texttt{lognorm(s=$\sigma$, scale=$e^{\mu}$)} \\
+Gamma &
+    $(\mathrm{shape}, \mathrm{scale})$ &
+    \texttt{gamma(a=shape, scale=scale)} \\
+Pareto &
+    $(\mathrm{shape}, \mathrm{scale})$ (Pareto type II / Lomax-style) &
+    \texttt{pareto(b=shape, scale=scale)} \\
+Weibull &
+    $(\mathrm{shape}, \mathrm{scale})$ &
+    \texttt{weibull\_min(c=shape, scale=scale)} \\
+\bottomrule
+\end{longtable}
+
+When in doubt, validate the parameters by drawing a large sample,
+computing the empirical mean and variance, and comparing to the
+theoretical values for the chosen parametrisation.
+
+% =====================================================================
+\section{Example Input Schemas}
+\label{app:input_schemas}
+
+\subsection*{Policy Table for ClaimSimulator}
+
+\begin{longtable}{p{0.22\textwidth}p{0.18\textwidth}p{0.50\textwidth}}
+\toprule
+\textbf{Column} & \textbf{Type} & \textbf{Description} \\
+\midrule
+\endhead
+\texttt{policy\_id}    & integer / string & Unique policy identifier. \\
+\texttt{freq\_dist}    & string           & Frequency distribution name. \\
+\texttt{freq\_params}  & tuple            & Frequency distribution parameters. \\
+\texttt{sev\_dist}     & string           & Severity distribution name. \\
+\texttt{sev\_params}   & tuple            & Severity distribution parameters. \\
+\texttt{start\_date}   & date / Timestamp & Policy effective date. \\
+\texttt{end\_date}     & date / Timestamp & Policy expiration date. \\
+\bottomrule
+\end{longtable}
+
+\subsection*{Correlation Matrix CSV}
+
+For multivariate correlated simulation, the correlation matrix CSV
+should contain a header row of line-of-business names and a leading
+column of names. The example below corresponds to five lines of
+business.
+
+\begin{lstlisting}[style=bashstyle]
+Correlation Matrix, LoB1, LoB2, LoB3, LoB4, LoB5
+LoB1, 1.0, 0.5, 0.5, 0.3, 0.2
+LoB2, 0.5, 1.0, 0.5, 0.7, 0.3
+LoB3, 0.5, 0.5, 1.0, 0.2, 0.5
+LoB4, 0.3, 0.7, 0.2, 1.0, 0.3
+LoB5, 0.2, 0.3, 0.5, 0.3, 1.0
+\end{lstlisting}
+
+\subsection*{Distribution List JSON}
+
+The companion JSON file specifies the marginal distributions:
+
+\begin{lstlisting}[style=bashstyle]
+[
+    {"index": 1, "dist_name": "LoB1",
+     "dist_type": "gamma",     "dist_param": [2, 1]},
+    {"index": 2, "dist_name": "LoB2",
+     "dist_type": "lognormal", "dist_param": [2, 1]},
+    {"index": 3, "dist_name": "LoB3",
+     "dist_type": "gamma",     "dist_param": [3, 1]},
+    {"index": 4, "dist_name": "LoB4",
+     "dist_type": "lognormal", "dist_param": [3, 2]},
+    {"index": 5, "dist_name": "LoB5",
+     "dist_type": "gamma",     "dist_param": [4, 2]}
+]
+\end{lstlisting}
+
+The \texttt{dist\_type} field uses the same names as the
+\texttt{actstats} distributions used elsewhere in the package.
+
+% =====================================================================
+\section{Default Configuration File}
+\label{app:default_config}
+
+The default \texttt{config.yaml} file shipped with \actsim is shown
+below for reference.
+
+\begin{lstlisting}[style=bashstyle]
+distributions:
+  severity:
+    - normal
+    - logistic
+    - exponential
+    - gamma
+    - beta
+    - lognormal
+    - weibull
+    - pareto
+    - uniform
+  frequency:
+    - poisson
+    - negative binomial
+
+metrics:
+  - aic
+  - bic
+  - log_likelihood
+  - chisquare
+\end{lstlisting}
+
+% =====================================================================
+\section{Simulation Assumptions}
+\label{app:assumptions}
+
+The following assumptions apply to \actsim simulations unless the user
+makes alternative arrangements:
+
+\begin{itemize}[leftmargin=*]
+    \item Within a single simulation period, frequency and severity are
+          independent unless a correlation or copula is specified.
+    \item All severities within a period are independent and
+          identically distributed.
+    \item Across simulation periods, draws are independent.
+    \item Stochastic LDFs are applied independently to each claim.
+    \item Random seeds fully determine the simulation output, given
+          the input data.
+\end{itemize}
+
+These assumptions are standard but may not match every modelling
+context. Users should review them when reporting results.
+
+% =====================================================================
+\section{Known Limitations}
+\label{app:limitations}
+
+A consolidated list of known limitations:
+
+\begin{itemize}[leftmargin=*]
+    \item Copula support is limited to Gaussian, Frank, Gumbel, and
+          Clayton families.
+    \item Multivariate correlated simulation does not retain
+          claim-level data beyond marginal totals.
+    \item Frequency/severity dependency is implemented via a bivariate
+          correlation matrix only; higher-order dependency structures
+          are not currently supported.
+    \item KS statistic is computed via \texttt{scipy.stats.kstest} and
+          uses the fitted CDF; for very large samples this can be
+          computationally expensive.
+\end{itemize}
+
+% =====================================================================
+\section{Release History}
+\label{app:release_history}
+
+\begin{longtable}{p{0.18\textwidth}p{0.18\textwidth}p{0.6\textwidth}}
+\toprule
+\textbf{Version} & \textbf{Date} & \textbf{Notes} \\
+\midrule
+\endhead
+0.1.0 & 2025 & Initial public release. Includes
+                \texttt{DistributionFitter}, \texttt{StochasticSimulator},
+                and \texttt{ClaimSimulator}. \\
+\bottomrule
+\end{longtable}
+
+Future releases will be documented in the project \texttt{CHANGELOG.md}
+file in the source repository.

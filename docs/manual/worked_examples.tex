@@ -1,0 +1,279 @@
+\chapter{Worked Examples}
+\label{chap:worked_examples}
+
+This chapter contains a series of end-to-end worked examples designed to
+illustrate typical \actsim workflows. Each example states its purpose,
+describes the input data, presents the Python code, and discusses the
+output and its actuarial interpretation.
+
+% =====================================================================
+\section{Example 1: Aggregate Loss Simulation}
+\label{ex:agg_loss}
+
+\paragraph{Purpose.} Simulate aggregate losses for a single line of
+business using a Poisson frequency distribution and a lognormal severity
+distribution.
+
+\paragraph{Input data.} No external data; the example uses synthetic
+distribution parameters.
+
+\paragraph{Code.}
+\begin{lstlisting}[style=pythonstyle]
+from actsim import StochasticSimulator
+
+simulator = StochasticSimulator(
+    freq_dist="poisson",
+    freq_params=(50,),
+    sev_dist="lognormal",
+    sev_params=(10, 0.5),
+    num_sim=50000,
+    keep_all=True,
+    seed=2024,
+)
+
+simulator.gen_agg_simulations()
+
+print("Mean aggregate loss:",  simulator.results.mean())
+print("99% VaR:",              simulator.calc_agg_percentile(99))
+print("99.5% VaR:",            simulator.calc_agg_percentile(99.5))
+\end{lstlisting}
+
+\paragraph{Output interpretation.} The mean aggregate loss should be
+close to $E[N] \cdot E[X]$. Because the severity is lognormal with
+parameters $\mu = 10$ and $\sigma = 0.5$, $E[X] \approx
+\exp(\mu + \sigma^{2}/2)$. The simulated mean should converge to this
+theoretical mean as the number of simulations increases.
+
+\paragraph{Actuarial notes.} This example serves as a sanity check
+that the simulator correctly implements the compound Poisson--lognormal
+model. The 99\% VaR and 99.5\% VaR are typical risk indicators reported
+in solvency frameworks.
+
+% =====================================================================
+\section{Example 2: Fitting Severity Distributions to Historical Losses}
+
+\paragraph{Purpose.} Fit a set of candidate severity distributions to a
+synthetic dataset and select the best-fitting distribution by AIC.
+
+\paragraph{Input data.} A simulated dataset of 10{,}000 losses drawn
+from a known lognormal distribution. In a real engagement, this dataset
+would be replaced with empirical losses from claim files.
+
+\paragraph{Code.}
+\begin{lstlisting}[style=pythonstyle]
+from actsim import DistributionFitter, load_config
+from actstats import actuarial as act
+
+# Generate synthetic loss data
+loss_data = act.lognormal(0.5, 0.2).rvs(size=10000)
+
+# Load the default configuration
+config = load_config()
+distributions = config.distributions["severity"]
+metrics = config.metrics
+
+# Fit candidate distributions
+fitter = DistributionFitter(loss_data,
+                            distributions=distributions,
+                            metrics=metrics)
+fitter.fit()
+
+# Inspect best fits and selected distribution
+print("Best fit by AIC:", fitter.best_fits["aic"]["name"])
+print("Selected fit:",    fitter.selected_fit["name"])
+
+# Diagnostic plot
+fitter.plot_predictions()
+
+# Summary table
+print(fitter.summary())
+\end{lstlisting}
+
+\paragraph{Output interpretation.} The selected distribution should
+typically be the lognormal, since the data were drawn from that family.
+The summary table reports AIC, BIC, log-likelihood, and chi-square
+values for each fitted distribution.
+
+\paragraph{Actuarial notes.} In real-world fits, the differences between
+candidate distributions in AIC and BIC are often small. Diagnostic plots
+and tail-fit checks should be consulted in addition to the
+information criteria.
+
+% =====================================================================
+\section{Example 3: Synthetic Policy and Claim Generation}
+
+\paragraph{Purpose.} Generate a synthetic dataset of 100 policies and
+their associated claims.
+
+\paragraph{Input data.} A randomly generated policy table.
+
+\paragraph{Code.}
+\begin{lstlisting}[style=pythonstyle]
+import pandas as pd
+import numpy as np
+from actsim import ClaimSimulator
+
+policies = pd.DataFrame({
+    "policy_id":   range(1, 101),
+    "freq_dist":   "poisson",
+    "freq_params": list(zip(np.random.uniform(0.6, 0.8, 100).round(2),)),
+    "sev_dist":    "lognormal",
+    "sev_params":  list(zip(
+        np.random.uniform(8, 12, 100).round(2),
+        np.random.uniform(0.3, 0.7, 100).round(2),
+    )),
+    "start_date":  pd.Timestamp("2023-01-01"),
+    "end_date":    pd.Timestamp("2023-12-31"),
+})
+
+claim_sim = ClaimSimulator(policies, random_seed=42)
+claim_sim.simulate_claims()
+print(claim_sim.claim_data.head())
+\end{lstlisting}
+
+\paragraph{Output interpretation.} The \texttt{claim\_data} DataFrame
+contains one row per simulated claim, with a \texttt{policy\_id} column
+linking each claim back to its parent policy.
+
+\paragraph{Actuarial notes.} Some policies may produce zero claims; this
+is expected behaviour for low-frequency policies and is consistent with
+the underlying Poisson assumption.
+
+% =====================================================================
+\section{Example 4: Developing Claims Using LDFs}
+
+\paragraph{Purpose.} Develop the simulated claims from
+Example~3 using a user-supplied LDF schedule.
+
+\paragraph{Code.}
+\begin{lstlisting}[style=pythonstyle]
+claim_sim.simulate_dates_nhpp(lambda0=10, alpha=0.5, phase=0, T=1)
+
+base_LDFs = {0: 2.0, 3: 1.5, 6: 1.2, 9: 1.1,
+             12: 1.05, 15: 1.02, 18: 1.0}
+
+claim_sim.simulate_claim_development(
+    base_LDFs=base_LDFs,
+    volatility=0.1,
+    cumulative_factor=1.0,
+)
+
+print(claim_sim.claim_development.head())
+\end{lstlisting}
+
+\paragraph{Output interpretation.} The \texttt{claim\_development}
+DataFrame contains one row per (claim, development month) pair, with
+incurred losses that grow towards the ultimate value as the development
+age increases.
+
+% =====================================================================
+\section{Example 5: Converting Simulated Claims to a Triangle}
+
+\paragraph{Purpose.} Aggregate the simulated claim development data
+into a long-format loss triangle.
+
+\paragraph{Code.}
+\begin{lstlisting}[style=pythonstyle]
+triangle_df = (
+    claim_sim.claim_development
+    .groupby(["accident_year", "development_month"])["incurred_loss"]
+    .sum()
+    .reset_index()
+)
+print(triangle_df.head())
+\end{lstlisting}
+
+\paragraph{Output interpretation.} \texttt{triangle\_df} is the
+long-format triangle ready for use with \texttt{chainladder}.
+
+% =====================================================================
+\section{Example 6: Analysing the Triangle with chainladder}
+
+\paragraph{Purpose.} Fit a chain-ladder model to the simulated
+triangle and obtain projected ultimate losses.
+
+\paragraph{Code.}
+\begin{lstlisting}[style=pythonstyle]
+import chainladder as cl
+
+triangle = cl.Triangle(
+    triangle_df,
+    origin="accident_year",
+    development="development_month",
+    columns="incurred_loss",
+    cumulative=True,
+)
+
+model = cl.Chainladder().fit(triangle)
+print(model.ultimate_)
+\end{lstlisting}
+
+\paragraph{Output interpretation.} The projected ultimates can be
+compared against the sum of simulated ultimate losses by accident year.
+For a well-specified simulation and a sufficiently large sample, the
+two should agree within sampling error.
+
+% =====================================================================
+\section{Example 7: Calculating VaR and TVaR}
+
+\paragraph{Purpose.} Compute VaR and TVaR at multiple confidence levels
+from a simulation run.
+
+\paragraph{Code.}
+\begin{lstlisting}[style=pythonstyle]
+from actsim import StochasticSimulator
+
+simulator = StochasticSimulator(
+    "poisson", (100,),
+    "gamma", (2, 5000),
+    num_sim=50000,
+    keep_all=True,
+    seed=99,
+)
+
+simulator.gen_agg_simulations()
+report = simulator.analyze_results(quantiles=[0.5, 0.9, 0.95, 0.99, 0.995])
+print(report.round(2))
+\end{lstlisting}
+
+\paragraph{Output interpretation.} The output table contains VaR, TVaR,
+OEP, and AEP at each requested quantile. TVaR values exceed the
+corresponding VaR at the same level, as expected.
+
+% =====================================================================
+\section{Example 8: Validating Simulated Frequency}
+
+\paragraph{Purpose.} Compare the simulated mean claim count against the
+theoretical expected value.
+
+\paragraph{Code.}
+\begin{lstlisting}[style=pythonstyle]
+import numpy as np
+from actsim import StochasticSimulator
+
+lambda_true = 50.0
+
+simulator = StochasticSimulator(
+    "poisson", (lambda_true,),
+    "lognormal", (10, 0.5),
+    num_sim=100000,
+    keep_all=True,
+    seed=2025,
+)
+
+simulator.gen_agg_simulations()
+
+events_per_year = simulator.all_simulations.groupby("year").size()
+print("Theoretical mean:", lambda_true)
+print("Simulated mean:",   events_per_year.mean())
+\end{lstlisting}
+
+\paragraph{Output interpretation.} The simulated mean claim count should
+converge to $\lambda = 50$ as the number of simulations increases. Small
+deviations are due to simulation noise and are bounded by the standard
+error $\sqrt{\lambda / M}$, where $M$ is the number of simulations.
+
+\paragraph{Actuarial notes.} This kind of internal consistency check
+should be standard practice when validating any simulation-based model.
+The validation chapter (Chapter~\ref{chap:validation}) discusses similar
+checks for severity, aggregate losses, and claim development.

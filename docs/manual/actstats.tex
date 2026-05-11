@@ -1,0 +1,116 @@
+\chapter{ActStats}
+\label{chap:actstats}
+
+\section{Overview}
+
+\actsim depends on the companion package \texttt{actstats}, which provides
+actuarial-style wrappers around standard statistical distributions. The
+\texttt{actstats} package exposes a familiar interface for fitting,
+sampling, and evaluating distributions, and it is the engine behind
+\actsim's distribution fitting and stochastic simulation classes.
+
+The \texttt{actstats} package is imported under the alias
+\texttt{act} throughout the manual:
+
+\begin{lstlisting}[style=pythonstyle]
+from actstats import actuarial as act
+\end{lstlisting}
+
+\section{Why a Dedicated Actuarial Wrapper?}
+
+Many actuarial computations could be performed directly using
+\texttt{scipy.stats} or \texttt{numpy.random}. However, parameter conventions 
+in \texttt{scipy} and \texttt{numpy.random} do not always match standard 
+actuarial textbook conventions. For example, \texttt{scipy.stats.lognorm} 
+is parametrised by a shape parameter $s$ and optional location and scale 
+arguments, whereas actuaries typically work with the underlying normal mean 
+$\mu$ and standard deviation $\sigma$.
+
+\texttt{actstats} provides actuarial-friendly parametrisations and
+exposes a consistent API across distributions. It also provides
+specialised utilities such as the non-homogeneous Poisson process used
+for incurred date simulation in \actsim.
+
+\section{Supported Distributions}
+
+The distributions exposed through \texttt{actstats} that are used
+internally by \actsim include:
+
+\begin{itemize}[leftmargin=*]
+    \item Continuous: \texttt{normal}, \texttt{logistic},
+          \texttt{exponential}, \texttt{gamma}, \texttt{beta},
+          \texttt{lognormal}, \texttt{weibull}, \texttt{pareto},
+          \texttt{uniform}.
+    \item Discrete: \texttt{poisson}, \texttt{negative\_binomial}.
+\end{itemize}
+
+These names match the entries used in the default \texttt{config.yaml}
+shipped with \actsim and may be referenced from the configuration loader.
+
+\section{Common Operations}
+
+The interface exposed by \texttt{actstats} mirrors familiar statistical
+patterns:
+
+\begin{lstlisting}[style=pythonstyle]
+from actstats import actuarial as act
+
+# Construct a frozen distribution
+dist = act.lognormal(0.5, 0.2)
+
+# Draw random samples
+samples = dist.rvs(size=10000)
+
+# Evaluate the probability density function
+pdf_values = dist.pdf([1.0, 1.5, 2.0])
+
+# Evaluate the cumulative distribution function
+cdf_values = dist.cdf([1.0, 1.5, 2.0])
+
+# Evaluate the inverse CDF (quantile function)
+quantiles = dist.ppf([0.5, 0.9, 0.99])
+\end{lstlisting}
+
+\section{Discrete Distributions}
+
+Frequency simulations rely on discrete distributions such as Poisson
+and negative binomial. Sampling is performed in the same way:
+
+\begin{lstlisting}[style=pythonstyle]
+from actstats import actuarial as act
+
+# Poisson with mean 10
+freq_dist = act.poisson(10)
+counts = freq_dist.rvs(size=1000)
+
+# 80th percentile of Poisson(10)
+q80 = act.poisson.ppf(0.8, 10)
+\end{lstlisting}
+
+\section{Non-Homogeneous Poisson Process}
+
+\texttt{actstats} also provides a utility for simulating event times from
+a non-homogeneous Poisson process (NHPP) with a sinusoidal seasonal
+intensity:
+
+\begin{lstlisting}[style=pythonstyle]
+from actstats import actuarial as act
+
+# Baseline intensity 10, seasonality amplitude 0.5,
+# phase shift 0, exposure 1 year
+nhpp = act.nonhomogeneous_poisson(10, 0.5, 0, 1)
+
+# Generate event time fractions in [0, 1]
+times = nhpp.rvs(n_events=20)
+\end{lstlisting}
+
+This utility is used internally by \texttt{ClaimSimulator} to assign
+incurred dates to simulated claims (see
+Chapter~\ref{chap:claim_simulator}).
+
+\section{Date Conversion Helpers}
+
+\texttt{actstats} also provides date conversion helpers, such as
+\texttt{fraction\_to\_date\_full}, that map fractions of an exposure
+period to calendar dates. These are used by \actsim when assigning
+incurred and development dates to simulated claims.
