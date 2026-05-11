@@ -1,0 +1,156 @@
+\chapter{Claim Development and LDFs}
+\label{chap:claim_development}
+
+\section{Overview}
+
+Claims do not typically reach their ultimate cost on the date they are
+reported. Reserving actuaries study \emph{development patterns} that
+describe how reported and paid losses evolve from the date of an
+accident through to ultimate settlement. \actsim provides a simple,
+transparent mechanism for developing simulated claims using user-supplied
+loss development factors (LDFs).
+
+\section{Definitions}
+
+The terminology used in this chapter follows standard actuarial
+practice.
+
+\begin{description}[leftmargin=*,style=nextline]
+    \item[Accident year] The calendar year in which a claim occurred.
+    \item[Development age] The number of months elapsed since the start
+        of the accident period (often measured at quarterly or annual
+        intervals).
+    \item[Reported loss] The sum of paid losses and case reserves on a
+        claim at a given valuation date.
+    \item[Paid loss] The cumulative amount paid on a claim at a given
+        valuation date.
+    \item[Incurred loss] In this manual, used interchangeably with
+        reported loss.
+    \item[Ultimate loss] The expected total cost of a claim once all
+        development is complete.
+    \item[Loss development factor (LDF)] The ratio of losses at one
+        development age to losses at the previous age.
+    \item[Cumulative development factor (CDF)] The ratio of ultimate
+        losses to losses at a given development age.
+\end{description}
+
+\section{Mathematical Setup}
+
+Let $U$ denote the ultimate loss for a claim and let $\mathrm{LDF}_a$
+denote the development factor between age $a$ and the next reported age.
+The cumulative development factor at age $a$ is
+\[
+    \mathrm{CDF}_a = \prod_{j \geq a} \mathrm{LDF}_j,
+\]
+where the product runs over all development ages from $a$ through to
+ultimate. The reported loss at age $a$ is then
+\[
+    L_a = \frac{U}{\mathrm{CDF}_a}.
+\]
+The incremental development between two adjacent ages is
+\[
+    \Delta L_a = L_a - L_{a-1}.
+\]
+
+\section{Stochastic LDFs in ActSim}
+
+In the deterministic chain-ladder method, the LDF at each development
+age is a single point estimate. \actsim introduces stochastic variation
+around the user-supplied base LDFs by multiplying each factor by a
+normal random variable centred at $1$:
+\[
+    \widetilde{\mathrm{LDF}}_a = \mathrm{LDF}_a \cdot \varepsilon_a,
+    \qquad \varepsilon_a \sim \mathcal{N}(1, \sigma^2).
+\]
+The standard deviation $\sigma$ is the \texttt{volatility} argument
+passed to \texttt{simulate\_claim\_development}. A separate set of
+stochastic LDFs is drawn for each claim, so different claims at the
+same accident age develop along different paths.
+
+\section{Tail Factor}
+
+The \texttt{cumulative\_factor} argument represents an additional
+factor applied beyond the user-supplied LDF schedule, intended to
+capture residual development beyond the latest age. For a fully
+developed pattern, set the tail factor to $1.0$.
+
+\section{Worked Calculation}
+
+Suppose a claim has ultimate loss $U = 10{,}000$ and the user has
+specified the following deterministic LDF schedule.
+
+\begin{center}
+\begin{tabular}{rrr}
+\toprule
+\textbf{Age (months)} & \textbf{LDF} & \textbf{CDF} \\
+\midrule
+ 0  & 2.00 & 4.987 \\
+ 3  & 1.50 & 2.494 \\
+ 6  & 1.20 & 1.663 \\
+ 9  & 1.10 & 1.386 \\
+12  & 1.05 & 1.260 \\
+15  & 1.02 & 1.200 \\
+18  & 1.00 & 1.000 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The reported loss at each age is then $L_a = U / \mathrm{CDF}_a$, giving
+the development pattern shown below (rounded).
+
+\begin{center}
+\begin{tabular}{rr}
+\toprule
+\textbf{Age (months)} & \textbf{Reported loss} \\
+\midrule
+ 0  & 2{,}005 \\
+ 3  & 4{,}010 \\
+ 6  & 6{,}013 \\
+ 9  & 7{,}215 \\
+12  & 7{,}937 \\
+15  & 8{,}333 \\
+18  & 10{,}000 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+In a stochastic simulation, the reported losses at each age will vary
+from claim to claim, but their expected pattern matches the values
+above.
+
+\section{From Claim Development to Triangles}
+
+The long-format \texttt{claim\_development} DataFrame produced by
+\actsim contains one row per (claim, development age). To form a
+loss-development triangle, the DataFrame must be aggregated by
+accident period and development age. This is straightforward in pandas:
+
+\begin{lstlisting}[style=pythonstyle]
+triangle = (
+    claim_sim.claim_development
+    .groupby(["accident_year", "development_month"])["incurred_loss"]
+    .sum()
+    .reset_index()
+)
+\end{lstlisting}
+
+This long-format triangle is the canonical input to the
+\texttt{chainladder} package (see Chapter~\ref{chap:chainladder}).
+
+\section{Practical Considerations}
+
+\begin{itemize}[leftmargin=*]
+    \item Choose an LDF schedule that is consistent with the simulated
+          claim mix and the calendar period of the simulation. Using
+          patterns that are inconsistent with the underlying claim
+          process will produce triangles that disagree with theoretical
+          ultimates.
+    \item The \texttt{volatility} parameter controls the dispersion of
+          development paths but not the central tendency. For
+          well-defined ultimates, the simulated triangle should
+          converge to the deterministic pattern as the number of claims
+          increases.
+    \item For lines of business with long tails, the user should
+          extend the LDF schedule to cover the full development horizon
+          and consider whether a tail factor is required.
+\end{itemize}

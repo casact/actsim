@@ -1,0 +1,92 @@
+\chapter{Installation}
+\label{chap:installation}
+
+\section{Requirements}
+
+\actsim requires Python 3.8 or later. The package depends on a number of
+common scientific Python libraries:
+
+\begin{itemize}[leftmargin=*]
+    \item \texttt{numpy} ($\geq 1.26$)
+    \item \texttt{scipy} ($\geq 1.7$)
+    \item \texttt{pandas} ($\geq 1.3$)
+    \item \texttt{matplotlib} ($\geq 3.4$)
+    \item \texttt{seaborn} ($\geq 0.13$)
+    \item \texttt{actstats} ($\geq 0.1.1$)
+\end{itemize}
+
+These packages will be installed automatically when \actsim is installed
+via \texttt{pip}.
+
+\section{Standard Installation}
+
+\actsim can be installed from the Python Package Index using \texttt{pip}:
+
+\begin{lstlisting}[style=bashstyle]
+pip install actsim
+\end{lstlisting}
+
+This will install the latest stable release together with all required
+dependencies.
+
+\section{Installation from Source}
+
+To install the latest development version directly from the source
+repository, clone the repository and install in editable mode:
+
+\begin{lstlisting}[style=bashstyle]
+git clone https://github.com/jzhng105/actsim.git
+cd actsim
+pip install -e .
+\end{lstlisting}
+
+Editable installation is convenient when modifying the package locally,
+since changes to the source files take effect without reinstallation.
+
+\section{Development Installation}
+
+Contributors who plan to add features, fix bugs, or run the test suite
+should install the additional development dependencies:
+
+\begin{lstlisting}[style=bashstyle]
+git clone https://github.com/jzhng105/actsim.git
+cd actsim
+pip install -e .[dev]
+\end{lstlisting}
+
+The development extras include testing utilities such as \texttt{pytest},
+formatters, and other tools used in the contribution workflow.
+
+\section{Recommended Virtual Environment}
+
+It is recommended to install \actsim into an isolated virtual environment
+to avoid conflicts with other Python projects:
+
+\begin{lstlisting}[style=bashstyle]
+python -m venv venv
+source venv/bin/activate        # macOS / Linux
+venv\Scripts\activate           # Windows
+pip install actsim
+\end{lstlisting}
+
+\section{Verifying the Installation}
+
+After installation, verify that \actsim can be imported and that the
+default configuration loads successfully:
+
+\begin{lstlisting}[style=pythonstyle]
+from actsim import (
+    DistributionFitter,
+    StochasticSimulator,
+    ClaimSimulator,
+    load_config,
+)
+
+config = load_config()
+print("Severity distributions:", config.distributions["severity"])
+print("Frequency distributions:", config.distributions["frequency"])
+print("Metrics:", config.metrics)
+\end{lstlisting}
+
+If the import statements succeed and the configuration prints the expected
+lists of distributions and metrics, the installation is working correctly.

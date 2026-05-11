@@ -1,0 +1,74 @@
+\chapter{Quick Start}
+\label{chap:quick_start}
+
+This chapter is intended to get a new user running their first simulation
+within a few minutes. The example below illustrates a basic
+frequency--severity simulation using \actsim's \texttt{StochasticSimulator}.
+
+\section{Minimal Example}
+
+The following script simulates 10{,}000 years of aggregate losses, using a
+Poisson frequency distribution with mean $50$ and a lognormal severity
+distribution.
+
+\begin{lstlisting}[style=pythonstyle]
+from actsim import StochasticSimulator
+
+simulator = StochasticSimulator(
+    freq_dist="poisson",
+    freq_params=(50,),
+    sev_dist="lognormal",
+    sev_params=(10, 0.5),
+    num_sim=10000,
+    keep_all=True,
+    seed=1234,
+)
+
+# Run the simulation
+simulator.gen_agg_simulations()
+
+# Inspect the simulated aggregate losses
+print(simulator.results.head())
+
+# Calculate the 99th percentile of the aggregate loss distribution
+var_99 = simulator.calc_agg_percentile(99)
+print(f"99% VaR: {var_99:,.2f}")
+\end{lstlisting}
+
+\section{What the Example Does}
+
+The example performs the following steps:
+
+\begin{enumerate}[leftmargin=*]
+    \item Constructs a \texttt{StochasticSimulator} configured with a
+          Poisson frequency distribution and a lognormal severity
+          distribution.
+    \item Sets the number of simulated years to 10{,}000.
+    \item Sets \texttt{keep\_all=True} so that individual event-level data
+          are stored alongside the aggregate results, enabling later
+          calculation of metrics such as Occurrence Exceedance Probability.
+    \item Fixes the random seed to 1234 to make the simulation reproducible.
+    \item Calls \texttt{gen\_agg\_simulations()} to run the simulation.
+    \item Calculates the 99th percentile of the aggregate loss
+          distribution.
+\end{enumerate}
+
+\section{Next Steps}
+
+After running this minimal example, users may wish to:
+
+\begin{itemize}[leftmargin=*]
+    \item Explore the \texttt{DistributionFitter} class for fitting
+          distributions to observed loss data
+          (Chapter~\ref{chap:distribution_fitter}).
+    \item Use the \texttt{ClaimSimulator} class to generate synthetic
+          claim-level data from a policy table
+          (Chapter~\ref{chap:claim_simulator}).
+    \item Apply deductibles, limits, and other contract terms to the
+          simulated losses (Section~\ref{sec:deductibles_and_limits}).
+    \item Integrate the simulated data with the \texttt{chainladder} package
+          for reserving analysis (Chapter~\ref{chap:chainladder}).
+\end{itemize}
+
+The remainder of the manual covers each capability in detail, with worked
+examples and validation guidance.

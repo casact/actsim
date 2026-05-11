@@ -1,0 +1,158 @@
+\chapter{Core Concepts}
+\label{chap:core_concepts}
+
+This chapter introduces the actuarial concepts that underpin \actsim. Users
+familiar with frequency--severity modelling and stochastic simulation may
+skim this material, but the notation introduced here is used throughout the
+manual.
+
+\section{Frequency Distributions}
+\label{sec:frequency_distributions}
+
+The \emph{frequency} of claims is the number of claims that occur during a
+specified period (often a policy year). \actsim models claim frequency
+using discrete probability distributions. The most common choices are:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Poisson distribution.} A simple one-parameter distribution
+          where the mean equals the variance. The probability mass
+          function is
+          \[
+              P(N = n) = \frac{\lambda^{n} e^{-\lambda}}{n!},
+              \qquad n = 0, 1, 2, \dots
+          \]
+          where $\lambda > 0$ is the expected number of claims.
+    \item \textbf{Negative binomial distribution.} A two-parameter
+          distribution that allows variance greater than the mean
+          (over-dispersion), often more realistic for claim counts.
+\end{itemize}
+
+\section{Severity Distributions}
+\label{sec:severity_distributions}
+
+The \emph{severity} of a claim is the loss amount associated with that
+claim. \actsim supports a wide range of continuous severity distributions,
+including:
+
+\begin{itemize}[leftmargin=*]
+    \item Lognormal
+    \item Gamma
+    \item Weibull
+    \item Pareto
+    \item Exponential
+    \item Beta
+    \item Normal, logistic, uniform (occasionally used for sensitivity
+          analysis or stylised examples)
+\end{itemize}
+
+For a continuous severity $X$ with density $f_X$ and cumulative
+distribution function $F_X$, the conventional moments are
+\[
+    E[X] = \int_0^{\infty} x f_X(x)\, dx, \qquad
+    \mathrm{Var}(X) = E[X^2] - (E[X])^{2}.
+\]
+
+\section{Aggregate Loss}
+\label{sec:aggregate_loss}
+
+The \emph{aggregate loss} for a period is the total loss across all claims
+that occur during that period. If $N$ denotes the number of claims and
+$X_1, X_2, \dots, X_N$ denote the individual claim severities, then
+the aggregate loss is
+\[
+    S = \sum_{i=1}^{N} X_i.
+\]
+
+When $N$ and the $X_i$ are mutually independent and the $X_i$ are
+independent and identically distributed, $S$ is referred to as a
+\emph{compound distribution}. Standard moment results in this setting
+are
+\[
+    E[S] = E[N] \cdot E[X], \qquad
+    \mathrm{Var}(S) = E[N] \cdot \mathrm{Var}(X) + \mathrm{Var}(N) \cdot (E[X])^{2}.
+\]
+
+In \actsim, aggregate losses are typically estimated by simulation rather
+than by analytical closed-form expressions, which makes the framework
+flexible across distribution choices.
+
+\section{Dependency and Correlation}
+\label{sec:dependency}
+
+In practice, claim frequency and severity are not always independent. For
+example, a year with many claims may also feature larger average severities
+due to a common driver. \actsim supports two mechanisms for introducing
+dependency between frequency and severity:
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Linear correlation.} A user-supplied correlation
+          coefficient is applied to a bivariate normal copula structure
+          via Cholesky decomposition.
+    \item \textbf{Copula-based dependency.} \actsim supports several
+          standard copulas, including Gaussian, Frank, Gumbel, and
+          Clayton copulas, parametrised by a dependency parameter.
+\end{enumerate}
+
+Multivariate dependency across multiple lines of business is also
+supported through correlated marginal simulation, configured via a
+correlation matrix and a list of marginal distributions.
+
+\section{Claim-Level Simulation}
+\label{sec:claim_level}
+
+Many actuarial workflows require not just aggregate losses but also
+\emph{claim-level} data: individual claim records with policy identifiers,
+occurrence dates, severities, and development histories. \actsim's
+\texttt{ClaimSimulator} class generates these records by:
+
+\begin{enumerate}[leftmargin=*]
+    \item Grouping policies by their frequency and severity distribution
+          specifications.
+    \item Simulating claim counts and severities for each group using the
+          underlying \texttt{StochasticSimulator}.
+    \item Assigning occurrence dates within each policy's exposure window
+          using a non-homogeneous Poisson process.
+    \item Optionally applying claim development to each simulated claim.
+\end{enumerate}
+
+\section{Claim Development}
+\label{sec:claim_development_concept}
+
+Claims do not typically reach their ultimate cost on the date they occur.
+Reported and paid amounts develop over time as additional information
+becomes available. \actsim represents this development through
+user-supplied \emph{loss development factors} (LDFs).
+
+If $U$ denotes the ultimate loss for a claim and $\mathrm{CDF}_a$ denotes
+the cumulative development factor to ultimate at age $a$, then the
+reported loss at age $a$ is approximated by
+\[
+    L_a = \frac{U}{\mathrm{CDF}_a}.
+\]
+
+The incremental development between two adjacent ages is
+\[
+    \Delta L_a = L_a - L_{a-1}.
+\]
+
+Stochastic variation around expected LDFs is introduced via a normal
+multiplier with user-specified volatility.
+
+\section{Risk Metrics}
+\label{sec:risk_metrics_concept}
+
+\actsim provides several standard risk metrics, including:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Mean and standard deviation} of aggregate losses.
+    \item \textbf{Percentiles} of the loss distribution.
+    \item \textbf{Value at Risk (VaR)} at user-specified confidence levels.
+    \item \textbf{Tail Value at Risk (TVaR)}, also known as conditional
+          tail expectation.
+    \item \textbf{Aggregate Exceedance Probability (AEP)}, related to
+          aggregate (annual) losses.
+    \item \textbf{Occurrence Exceedance Probability (OEP)}, related to
+          maximum single-event losses within a year.
+\end{itemize}
+
+These metrics are defined formally in Chapter~\ref{chap:risk_metrics}.

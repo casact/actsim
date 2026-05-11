@@ -1,0 +1,146 @@
+\chapter{Integration with Chainladder}
+\label{chap:chainladder}
+
+\section{Overview}
+
+\actsim is designed to complement, rather than replace, established
+triangle-based reserving tools. The \texttt{chainladder} Python package
+provides a comprehensive set of methods for reserving, including
+chain-ladder development, Bornhuetter--Ferguson, Cape Cod, Mack,
+bootstrap chain-ladder, and various GLM-based approaches.
+
+A natural division of labour is for \actsim to generate synthetic
+claim-level data and convert the results into triangle format, while
+\texttt{chainladder} performs reserving analysis on the resulting
+triangle. This chapter shows how the two packages interact.
+
+\section{From Simulated Claims to a Triangle}
+
+Once \texttt{ClaimSimulator} has produced a long-format development
+DataFrame, the data can be reshaped into the format expected by
+\texttt{chainladder}.
+
+\begin{lstlisting}[style=pythonstyle]
+import pandas as pd
+import numpy as np
+from actsim import ClaimSimulator
+
+# Build a policy table and simulate claims
+policies = pd.DataFrame({
+    "policy_id":  range(1, 501),
+    "freq_dist":  "poisson",
+    "freq_params": list(zip(np.random.uniform(0.6, 0.8, 500).round(2),)),
+    "sev_dist":   "lognormal",
+    "sev_params": list(zip(
+        np.random.uniform(8, 12, 500).round(2),
+        np.random.uniform(0.3, 0.7, 500).round(2),
+    )),
+    "start_date": pd.Timestamp("2018-01-01"),
+    "end_date":   pd.Timestamp("2022-12-31"),
+})
+
+claim_sim = ClaimSimulator(policies, random_seed=42)
+claim_sim.simulate_claims()
+claim_sim.simulate_dates_nhpp(lambda0=10, alpha=0.5, phase=0, T=5)
+
+base_LDFs = {0: 2.0, 3: 1.5, 6: 1.2, 9: 1.1, 12: 1.05, 15: 1.02, 18: 1.0}
+claim_sim.simulate_claim_development(
+    base_LDFs=base_LDFs,
+    volatility=0.1,
+    cumulative_factor=1.0,
+)
+
+triangle_df = (
+    claim_sim.claim_development
+    .groupby(["accident_year", "development_month"])["incurred_loss"]
+    .sum()
+    .reset_index()
+)
+\end{lstlisting}
+
+The resulting \texttt{triangle\_df} has one row per
+(accident year, development age) cell and aggregates the incurred losses
+across all claims in that cell.
+
+\section{Constructing a chainladder Triangle}
+
+The \texttt{chainladder} package accepts long-format data and converts
+it into its native triangle representation:
+
+\begin{lstlisting}[style=pythonstyle]
+import chainladder as cl
+
+triangle = cl.Triangle(
+    triangle_df,
+    origin="accident_year",
+    development="development_month",
+    columns="incurred_loss",
+    cumulative=True,
+)
+
+print(triangle)
+\end{lstlisting}
+
+The \texttt{cumulative=True} flag indicates that the values represent
+cumulative reported losses; if instead the values represented
+incremental amounts, the flag should be set to \texttt{False}.
+
+\section{Running a Chain-Ladder Model}
+
+Once a triangle has been constructed, fitting a chain-ladder model
+requires only a few lines of code:
+
+\begin{lstlisting}[style=pythonstyle]
+model = cl.Chainladder().fit(triangle)
+ultimate = model.ultimate_
+print(ultimate)
+\end{lstlisting}
+
+The \texttt{ultimate\_} attribute contains the projected ultimate losses
+for each accident year, which can be compared against the underlying
+ultimates from the simulation as a validation check (see
+Chapter~\ref{chap:validation}).
+
+\section{Other chainladder Methods}
+
+The same triangle can be analysed using a variety of methods provided
+by \texttt{chainladder}, for example:
+
+\begin{lstlisting}[style=pythonstyle]
+# Bornhuetter-Ferguson with apriori ultimates
+bf_model = cl.BornhuetterFerguson(apriori=0.7).fit(
+    X=triangle,
+    sample_weight=triangle.latest_diagonal,
+)
+
+# Mack chain-ladder
+mack = cl.MackChainladder().fit(triangle)
+print(mack.full_triangle_)
+
+# Bootstrap chain-ladder for reserve uncertainty
+bcl = cl.BootstrapODPSample().fit_transform(triangle)
+\end{lstlisting}
+
+These methods produce projected reserves and, where applicable,
+distributions over reserve outcomes that can be compared with the
+simulation-based metrics produced by \actsim.
+
+\section{Position of ActSim Relative to Chainladder}
+
+\actsim is positioned as a simulation and data-generation companion to
+\texttt{chainladder}, not a replacement. In a typical workflow:
+
+\begin{itemize}[leftmargin=*]
+    \item \actsim generates synthetic policy and claim-level data.
+    \item \actsim develops the simulated claims through a user-supplied
+          LDF schedule.
+    \item The resulting development data are reshaped into a triangle.
+    \item \texttt{chainladder} performs reserving analyses on the
+          triangle.
+    \item The reserving outputs are compared with the underlying
+          simulated ultimates to validate the workflow.
+\end{itemize}
+
+This division of labour leverages the strengths of each package:
+\actsim's flexible, transparent simulation engine and \texttt{chainladder}'s
+comprehensive suite of reserving methods.

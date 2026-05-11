@@ -1,0 +1,94 @@
+\chapter{Introduction}
+\label{chap:introduction}
+
+\section{What is ActSim?}
+
+\actsim is a Python-based actuarial simulation package designed for loss
+simulation, stochastic risk modelling, synthetic claim generation, and
+actuarial validation workflows. The package provides a transparent and
+extensible framework for actuaries, researchers, and analysts who need to
+generate, analyse, and validate simulated insurance loss data.
+
+The package is intended to modernise and extend traditional actuarial
+loss simulation tools by providing a Python-native framework that integrates
+with modern actuarial analytics workflows, including \texttt{pandas},
+\texttt{NumPy}, \texttt{SciPy}, \texttt{chainladder}, and LLM-assisted
+actuarial tools.
+
+\section{Why ActSim Exists}
+
+Actuarial workflows have historically depended on a mix of legacy spreadsheet
+models, vendor software, and bespoke scripts. While these approaches remain
+valuable, they often suffer from limited reproducibility, opaque assumptions,
+and weak integration with the broader scientific Python ecosystem.
+
+\actsim addresses several practical needs:
+
+\begin{itemize}[leftmargin=*]
+    \item Provide a Python-native framework for frequency--severity simulation
+          that can be inspected, audited, and extended.
+    \item Offer a reproducible workflow for synthetic claim-level data
+          generation, suitable for testing reserving methods and stress
+          scenarios.
+    \item Support claim development through user-supplied loss development
+          factors, with stochastic variation around expected patterns.
+    \item Integrate cleanly with triangle-based reserving tools such as the
+          \texttt{chainladder} package, so that simulated data can be
+          analysed using established reserving methods.
+    \item Provide standard risk metrics such as Value at Risk (VaR),
+          Tail Value at Risk (TVaR), Aggregate Exceedance Probability (AEP),
+          and Occurrence Exceedance Probability (OEP).
+\end{itemize}
+
+\section{Capabilities at a Glance}
+
+\actsim supports the following capabilities:
+
+\begin{itemize}[leftmargin=*]
+    \item Frequency--severity simulation using a wide range of standard
+          distributions.
+    \item Aggregate loss modelling with optional dependency between
+          frequency and severity, including linear correlation and copula
+          structures.
+    \item Multivariate correlated simulation across multiple lines of
+          business.
+    \item Claim-level synthetic data generation from a policy table,
+          including occurrence date assignment via a non-homogeneous
+          Poisson process.
+    \item Claim development using user-defined loss development factors
+          with stochastic volatility.
+    \item Risk metric calculation, including VaR, TVaR, AEP, and OEP.
+    \item Validation and testing workflows, with reproducibility ensured
+          via explicit random seeds.
+    \item Integration with triangle-based reserving tools.
+\end{itemize}
+
+\section{Positioning Statement}
+
+\actsim is intended to support actuarial simulation workflows, including
+frequency--severity modelling, stochastic aggregate loss simulation,
+claim-level synthetic data generation, claim development, and integration
+with triangle-based reserving workflows. It is designed to complement rather
+than replace existing reserving and pricing tools.
+
+\section{Audience}
+
+This manual is written for:
+
+\begin{itemize}[leftmargin=*]
+    \item Practising actuaries building loss models in Python.
+    \item Researchers who require reproducible synthetic claim data for
+          methodology development.
+    \item Students and educators who want to demonstrate stochastic
+          actuarial techniques with transparent code.
+    \item Open-source contributors and reviewers who wish to inspect or
+          extend the package.
+\end{itemize}
+
+\section{How to Read This Manual}
+
+The manual is organised so that new users can follow it from the
+installation chapter through quick start and core concepts before exploring
+the main classes. Experienced users can jump directly to the API reference
+or worked examples. The validation chapter is intended to support
+peer review and open-source scrutiny.

@@ -1,0 +1,121 @@
+\chapter{Contributing}
+\label{chap:contributing}
+
+\section{Scope of Contributions}
+
+\actsim is intended to support open actuarial research and transparent
+simulation workflows. Contributions are welcome and may include:
+
+\begin{itemize}[leftmargin=*]
+    \item Bug fixes.
+    \item Support for additional probability distributions.
+    \item New goodness-of-fit metrics.
+    \item Additional validation tests.
+    \item Documentation improvements (including this manual).
+    \item Worked examples and case studies.
+    \item Integration examples with other actuarial packages.
+    \item Performance improvements to the simulation engine.
+\end{itemize}
+
+The package is distributed under the Apache License 2.0, and all
+contributions are accepted under the same terms.
+
+\section{Setting Up a Development Environment}
+
+The recommended workflow uses an isolated virtual environment:
+
+\begin{lstlisting}[style=bashstyle]
+git clone https://github.com/jzhng105/actsim.git
+cd actsim
+
+python -m venv venv
+source venv/bin/activate          # macOS / Linux
+venv\Scripts\activate             # Windows
+
+pip install -e .[dev]
+\end{lstlisting}
+
+Editable installation (\texttt{pip install -e}) ensures that any local
+changes to the source files are picked up immediately, without
+reinstallation.
+
+\section{Running the Test Suite}
+
+Tests are run using \texttt{pytest}:
+
+\begin{lstlisting}[style=bashstyle]
+pytest
+\end{lstlisting}
+
+When adding new functionality, please add corresponding tests under the
+\texttt{tests/} directory. Tests should be deterministic and run
+quickly.
+
+\section{Code Style}
+
+The code base follows standard Python conventions:
+
+\begin{itemize}[leftmargin=*]
+    \item PEP 8 formatting.
+    \item Type hints on public method signatures where reasonable.
+    \item Concise, descriptive names.
+    \item Public methods documented with docstrings.
+\end{itemize}
+
+The repository's \texttt{black} configuration is the canonical source
+for formatting choices. Running \texttt{black .} before committing is
+recommended.
+
+\section{Adding a New Distribution}
+
+To add support for a new distribution:
+
+\begin{enumerate}[leftmargin=*]
+    \item Add the distribution to \texttt{actstats} (or confirm that an
+          implementation already exists).
+    \item Register the distribution in the
+          \texttt{available\_distributions} dictionary in both
+          \texttt{actfitter.py} and \texttt{actsimulator.py}.
+    \item Add the distribution to the \texttt{config.yaml} file under
+          the appropriate category (severity or frequency).
+    \item Add a unit test that fits the new distribution to a known
+          sample and verifies that the recovered parameters are close
+          to the truth.
+\end{enumerate}
+
+\section{Pull Request Workflow}
+
+\begin{enumerate}[leftmargin=*]
+    \item Fork the repository on GitHub.
+    \item Create a feature branch:
+          \texttt{git checkout -b feature/short-description}.
+    \item Make your changes and add tests.
+    \item Run the test suite locally and ensure that it passes.
+    \item Commit your changes with a descriptive message.
+    \item Push the branch to your fork and open a pull request against
+          the upstream repository's \texttt{main} branch.
+\end{enumerate}
+
+The maintainer will review the pull request and request changes if
+necessary. Small, focused pull requests are easier to review than large
+omnibus changes.
+
+\section{Reporting Issues}
+
+Bug reports and feature requests should be filed via the GitHub issue
+tracker. Useful bug reports include:
+
+\begin{itemize}[leftmargin=*]
+    \item A short description of the unexpected behaviour.
+    \item The version of \actsim, Python, and key dependencies.
+    \item A minimal reproducible example.
+    \item The actual and expected output.
+\end{itemize}
+
+\section{Discussion and Roadmap}
+
+Open-ended discussion (design questions, methodology, roadmap) should
+take place on the GitHub Discussions tab rather than the issue tracker.
+The maintainer welcomes input on roadmap priorities, particularly from
+practising actuaries who can help align development with real-world
+needs.

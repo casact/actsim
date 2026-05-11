@@ -1,0 +1,293 @@
+\chapter{API Reference}
+\label{chap:api_reference}
+
+This chapter provides a structured reference for the main classes and
+functions exposed by \actsim. It is intended for use as a lookup
+reference rather than a tutorial; readers who are new to \actsim should
+start with the chapters on the individual classes.
+
+% =====================================================================
+\section{\texttt{DistributionFitter}}
+\label{api:distribution_fitter}
+
+\subsection*{Constructor}
+
+\begin{lstlisting}[style=pythonstyle]
+DistributionFitter(data, distributions=None, metrics=None)
+\end{lstlisting}
+
+\begin{longtable}{p{0.25\textwidth}p{0.7\textwidth}}
+\toprule
+\textbf{Argument} & \textbf{Description} \\
+\midrule
+\endhead
+\texttt{data}          & Array-like of observed values to fit. \\
+\texttt{distributions} & Optional list of distribution names. Defaults to
+                         all supported distributions. \\
+\texttt{metrics}       & Optional list of goodness-of-fit metrics.
+                         Defaults to \texttt{['aic', 'bic']}. \\
+\bottomrule
+\end{longtable}
+
+\subsection*{Methods}
+
+\begin{longtable}{p{0.32\textwidth}p{0.62\textwidth}}
+\toprule
+\textbf{Method} & \textbf{Description} \\
+\midrule
+\endhead
+\texttt{fit()} &
+    Fits all candidate distributions to the data and computes
+    goodness-of-fit metrics. \\
+\texttt{select\_best\_fit()} &
+    Internal method called by \texttt{fit()}; selects the best fit under
+    each requested metric. \\
+\texttt{get\_best\_fit(metric)} &
+    Returns the best-fit dictionary for the given metric. \\
+\texttt{select\_distribution(name)} &
+    Manually overrides the selected distribution. \\
+\texttt{get\_selected\_dist()} &
+    Returns the currently selected distribution object. \\
+\texttt{get\_selected\_params()} &
+    Returns the parameters of the currently selected distribution. \\
+\texttt{predict(x)} &
+    Evaluates the PDF (or PMF) of the selected distribution at \texttt{x}. \\
+\texttt{sample(size)} &
+    Draws random samples from the selected distribution. \\
+\texttt{sample\_mixed(zero\_prop, one\_prop, size)} &
+    Draws samples with a given proportion of zeros and ones inserted. \\
+\texttt{calculate\_statistics()} &
+    Returns mean, standard deviation, and key percentiles for both the
+    data and the predicted density. \\
+\texttt{plot\_predictions(\dots)} &
+    Plots a histogram of the data with the PDFs of the requested
+    distributions overlaid. Argument:
+    \texttt{distribution\_names=None}. \\
+\texttt{summary()} &
+    Returns a DataFrame summarising the fitted distributions. \\
+\texttt{truncate\_data(i)} &
+    Removes observations equal to \texttt{i} from the data. \\
+\bottomrule
+\end{longtable}
+
+% =====================================================================
+\section{\texttt{StochasticSimulator}}
+\label{api:stochastic_simulator}
+
+\subsection*{Constructor}
+
+\begin{lstlisting}[style=pythonstyle]
+StochasticSimulator(
+    freq_dist, freq_params,
+    sev_dist, sev_params,
+    num_sim=10000,
+    keep_all=False,
+    seed=1,
+    correlation=None,
+    copula_type=None,
+    theta=0,
+)
+\end{lstlisting}
+
+\begin{longtable}{p{0.27\textwidth}p{0.68\textwidth}}
+\toprule
+\textbf{Argument} & \textbf{Description} \\
+\midrule
+\endhead
+\texttt{freq\_dist}    & Name of the frequency distribution. \\
+\texttt{freq\_params}  & Tuple of frequency distribution parameters. \\
+\texttt{sev\_dist}     & Name of the severity distribution. \\
+\texttt{sev\_params}   & Tuple of severity distribution parameters. \\
+\texttt{num\_sim}      & Number of simulation periods. \\
+\texttt{keep\_all}     & If \texttt{True}, retain individual event records. \\
+\texttt{seed}          & Random seed. \\
+\texttt{correlation}   & Optional correlation between $N$ and $X$. \\
+\texttt{copula\_type}  & Optional copula family. \\
+\texttt{theta}         & Copula dependence parameter. \\
+\bottomrule
+\end{longtable}
+
+\subsection*{Methods}
+
+\begin{longtable}{p{0.36\textwidth}p{0.58\textwidth}}
+\toprule
+\textbf{Method} & \textbf{Description} \\
+\midrule
+\endhead
+\texttt{gen\_agg\_simulations()} &
+    Runs the aggregate loss simulation. \\
+\texttt{gen\_copula()} &
+    Generates correlated uniforms from the configured copula family. \\
+\texttt{gen\_multivariate\_corr\_simulations(\dots)} &
+    Generates correlated marginal simulations across multiple lines of
+    business. Arguments: \texttt{corr\_matrix\_file},
+    \texttt{dist\_list\_file}, \texttt{gen\_marginal=False}. \\
+\texttt{calc\_agg\_percentile(pct=95)} &
+    Returns the requested percentile of aggregate losses. \\
+\texttt{plot\_distribution(bins=None, log\_option=False)} &
+    Plots a histogram of simulated aggregate losses. \\
+\texttt{plot\_correlated\_variables()} &
+    Plots simulated frequency--severity correlation. \\
+\texttt{analyze\_results(quantiles, **kwargs)} &
+    Returns VaR, TVaR, OEP, and AEP at the specified quantiles. \\
+\texttt{apply\_deductible\_and\_limit(\dots)} &
+    Applies per-occurrence and aggregate deductibles and limits.
+    Arguments: \texttt{per\_occurrence\_ded},
+    \texttt{per\_occurrence\_limit}, \texttt{agg\_ded},
+    \texttt{agg\_limit}. \\
+\bottomrule
+\end{longtable}
+
+\subsection*{Properties}
+
+\begin{longtable}{p{0.3\textwidth}p{0.65\textwidth}}
+\toprule
+\textbf{Property} & \textbf{Description} \\
+\midrule
+\endhead
+\texttt{results} &
+    Pandas Series of aggregate losses by simulation period. \\
+\texttt{all\_simulations} &
+    Pandas DataFrame of individual event records (when
+    \texttt{keep\_all=True}). \\
+\bottomrule
+\end{longtable}
+
+% =====================================================================
+\section{\texttt{ClaimSimulator}}
+\label{api:claim_simulator}
+
+\subsection*{Constructor}
+
+\begin{lstlisting}[style=pythonstyle]
+ClaimSimulator(
+    policies_df,
+    random_seed=42,
+    correlation=None,
+    copula_type=None,
+    copula_param=0,
+)
+\end{lstlisting}
+
+\begin{longtable}{p{0.27\textwidth}p{0.68\textwidth}}
+\toprule
+\textbf{Argument} & \textbf{Description} \\
+\midrule
+\endhead
+\texttt{policies\_df}   & Policy table with required columns. \\
+\texttt{random\_seed}   & Random seed. \\
+\texttt{correlation}    & Optional frequency--severity correlation. \\
+\texttt{copula\_type}   & Optional copula family. \\
+\texttt{copula\_param}  & Copula dependence parameter. \\
+\bottomrule
+\end{longtable}
+
+\subsection*{Methods}
+
+\begin{longtable}{p{0.36\textwidth}p{0.58\textwidth}}
+\toprule
+\textbf{Method} & \textbf{Description} \\
+\midrule
+\endhead
+\texttt{group\_policies()} &
+    Groups policies by frequency/severity specifications. \\
+\texttt{simulate\_claims()} &
+    Simulates claim counts and severities for each policy group. \\
+\texttt{simulate\_dates\_nhpp(lambda0, alpha, phase, T)} &
+    Assigns occurrence dates using a non-homogeneous Poisson process. \\
+\texttt{simulate\_claim\_development(\dots)} &
+    Develops claims using stochastic LDFs. Arguments:
+    \texttt{base\_LDFs}, \texttt{volatility=0.1},
+    \texttt{cumulative\_factor=1.0}. \\
+\texttt{save\_claim\_development(filepath)} &
+    Saves the development DataFrame to CSV. \\
+\bottomrule
+\end{longtable}
+
+\subsection*{Attributes}
+
+\begin{longtable}{p{0.3\textwidth}p{0.65\textwidth}}
+\toprule
+\textbf{Attribute} & \textbf{Description} \\
+\midrule
+\endhead
+\texttt{policies}            & Processed policy DataFrame. \\
+\texttt{claim\_data}         & Simulated claim records. \\
+\texttt{claim\_development}  & Long-format claim development data. \\
+\bottomrule
+\end{longtable}
+
+% =====================================================================
+\section{\texttt{Config} and \texttt{load\_config}}
+\label{api:config}
+
+\subsection*{\texttt{load\_config}}
+
+\begin{lstlisting}[style=pythonstyle]
+load_config(file_path=None)
+\end{lstlisting}
+
+Convenience function that returns a \texttt{Config} object. If
+\texttt{file\_path} is \texttt{None}, the default \texttt{config.yaml}
+shipped with the package is used.
+
+\subsection*{\texttt{Config}}
+
+\begin{longtable}{p{0.3\textwidth}p{0.65\textwidth}}
+\toprule
+\textbf{Method} & \textbf{Description} \\
+\midrule
+\endhead
+\texttt{has\_key(key)} &
+    Returns \texttt{True} if the key exists in the configuration. \\
+\texttt{update(updates)} &
+    Updates configuration values from a dictionary. \\
+\texttt{clear()} &
+    Removes all configuration values. \\
+\texttt{reload()} &
+    Re-reads the configuration file from disk. \\
+\texttt{save()} &
+    Writes the current configuration to file. \\
+\bottomrule
+\end{longtable}
+
+% =====================================================================
+\section{Utility Functions}
+\label{api:utilities}
+
+\subsection*{\texttt{timing\_decorator}}
+
+A decorator used internally to measure the runtime of long-running
+methods. It prints the elapsed time when the decorated function returns.
+This decorator is intended for development use rather than as part of
+the public API.
+
+% =====================================================================
+\section{ActuarialDistribution Names}
+\label{api:dist_names}
+
+The following table lists the distribution names accepted by both
+\texttt{DistributionFitter} and \texttt{StochasticSimulator}.
+
+\begin{longtable}{p{0.3\textwidth}p{0.65\textwidth}}
+\toprule
+\textbf{Name} & \textbf{Description} \\
+\midrule
+\endhead
+\texttt{normal}            & Normal (Gaussian) distribution. \\
+\texttt{logistic}          & Logistic distribution. \\
+\texttt{exponential}       & Exponential distribution. \\
+\texttt{gamma}             & Gamma distribution. \\
+\texttt{beta}              & Beta distribution. \\
+\texttt{lognormal}         & Lognormal distribution. \\
+\texttt{weibull}           & Weibull distribution. \\
+\texttt{pareto}            & Pareto distribution. \\
+\texttt{uniform}           & Uniform distribution. \\
+\texttt{poisson}           & Poisson distribution. \\
+\texttt{negative binomial} & Negative binomial distribution. \\
+\bottomrule
+\end{longtable}
+
+Parameter conventions follow those of \texttt{actstats}; see the
+\texttt{actstats} documentation for the exact parametrisation of each
+distribution.

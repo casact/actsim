@@ -1,0 +1,232 @@
+\chapter{StochasticSimulator}
+\label{chap:stochastic_simulator}
+
+\section{Purpose}
+
+The \texttt{StochasticSimulator} class is the core simulation engine of
+\actsim. It supports Monte Carlo simulation of aggregate losses under
+specified frequency and severity distributions and can also be used to
+generate correlated multivariate simulations across multiple lines of
+business.
+
+The simulator is designed to be reproducible: every run is governed by an
+explicit random seed, and intermediate event-level data can be retained
+for downstream metrics such as Occurrence Exceedance Probability.
+
+\section{Construction}
+
+A simulator is constructed by specifying the frequency and severity
+distributions together with their parameters:
+
+\begin{lstlisting}[style=pythonstyle]
+from actsim import StochasticSimulator
+
+simulator = StochasticSimulator(
+    freq_dist="poisson",
+    freq_params=(10,),
+    sev_dist="lognormal",
+    sev_params=(10, 0.5),
+    num_sim=10000,
+    keep_all=True,
+    seed=1234,
+)
+\end{lstlisting}
+
+The constructor arguments are summarised below.
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+\textbf{Argument} & \textbf{Description} \\
+\midrule
+\texttt{freq\_dist}    & Name of the frequency distribution. \\
+\texttt{freq\_params}  & Tuple of parameters for the frequency distribution. \\
+\texttt{sev\_dist}     & Name of the severity distribution. \\
+\texttt{sev\_params}   & Tuple of parameters for the severity distribution. \\
+\texttt{num\_sim}      & Number of simulation periods (default 10{,}000). \\
+\texttt{keep\_all}     & If \texttt{True}, retain individual event records. \\
+\texttt{seed}          & Random seed for reproducibility. \\
+\texttt{correlation}   & Optional linear correlation between $N$ and $X$. \\
+\texttt{copula\_type}  & Optional copula family. \\
+\texttt{theta}         & Copula dependence parameter. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Frequency--Severity Simulation}
+
+The primary method is \texttt{gen\_agg\_simulations()}, which loops over
+the requested number of simulation periods, draws a frequency from the
+frequency distribution, and then draws that many severities from the
+severity distribution. Aggregate losses are accumulated and stored in
+\texttt{results}.
+
+\begin{lstlisting}[style=pythonstyle]
+simulator.gen_agg_simulations()
+print(simulator.results.head())
+\end{lstlisting}
+
+If \texttt{keep\_all=True}, individual event-level records are stored in
+\texttt{all\_simulations}, with columns \texttt{year}, \texttt{event\_id},
+\texttt{yearly\_event\_id}, and \texttt{amount}.
+
+\section{Dependency between Frequency and Severity}
+
+\subsection{Linear Correlation}
+
+When \texttt{correlation} is supplied without a copula, frequency and
+severity are correlated through a Cholesky factorisation of a $2 \times 2$
+correlation matrix:
+\[
+    C = \begin{pmatrix} 1 & \rho \\ \rho & 1 \end{pmatrix},
+    \qquad C = L L^{\top}.
+\]
+Standard normal variates are transformed into uniform variates via the
+normal CDF, and these uniforms are then mapped through the inverse CDF of
+the target frequency and severity distributions.
+
+\begin{lstlisting}[style=pythonstyle]
+simulator = StochasticSimulator(
+    "poisson", (10,),
+    "lognormal", (10, 0.5),
+    num_sim=10000,
+    keep_all=True,
+    seed=1234,
+    correlation=0.6,
+)
+\end{lstlisting}
+
+\subsection{Copula-Based Dependency}
+
+\actsim supports four copula families: Gaussian, Frank, Gumbel, and
+Clayton. Each is parametrised by a dependence parameter
+$\theta$ (or by a correlation matrix in the Gaussian case).
+
+\begin{lstlisting}[style=pythonstyle]
+simulator = StochasticSimulator(
+    "poisson", (10,),
+    "lognormal", (10, 0.5),
+    num_sim=10000,
+    keep_all=True,
+    seed=1234,
+    correlation=0.6,
+    copula_type="frank",
+    theta=0.6,
+)
+\end{lstlisting}
+
+The chosen copula generates pairs of dependent uniforms, which are then
+mapped to frequency and severity via the inverse CDFs.
+
+\section{Multivariate Correlated Simulation}
+
+The method \texttt{gen\_multivariate\_corr\_simulations} generates
+correlated losses across multiple lines of business. It accepts a
+correlation matrix as a CSV file and a list of marginal distributions as
+a JSON file.
+
+\begin{lstlisting}[style=pythonstyle]
+simulator = StochasticSimulator(
+    "normal", (1, 0),
+    "normal", (1, 0),
+    num_sim=100000,
+    keep_all=True,
+    seed=1234,
+)
+
+simulator.gen_multivariate_corr_simulations(
+    "examples/correlated_sim/corr_matrix.csv",
+    "examples/correlated_sim/dist_list.json",
+    gen_marginal=True,
+)
+\end{lstlisting}
+
+When \texttt{gen\_marginal=True}, the simulator stores marginal
+simulations for each line of business in \texttt{\_all\_simulations\_data}.
+The aggregated total across all lines is stored in \texttt{results}.
+
+\section{Analysing Results}
+
+\subsection{Aggregate Percentiles}
+
+The \texttt{calc\_agg\_percentile} method returns a single percentile of
+the aggregate loss distribution.
+
+\begin{lstlisting}[style=pythonstyle]
+p99_2 = simulator.calc_agg_percentile(99.2)
+print(f"99.2% percentile: {p99_2:,.2f}")
+\end{lstlisting}
+
+\subsection{Risk Metrics}
+
+The \texttt{analyze\_results} method computes a table of VaR, TVaR, OEP,
+and AEP at user-specified quantiles. OEP is only available when
+\texttt{keep\_all=True}.
+
+\begin{lstlisting}[style=pythonstyle]
+metrics = simulator.analyze_results(
+    quantiles=[0.5, 0.75, 0.9, 0.95, 0.99]
+)
+print(metrics)
+\end{lstlisting}
+
+\subsection{Distribution Plot}
+
+The \texttt{plot\_distribution} method draws a histogram of the simulated
+aggregate losses, optionally on a logarithmic scale:
+
+\begin{lstlisting}[style=pythonstyle]
+simulator.plot_distribution(bins=100, log_option=False)
+\end{lstlisting}
+
+\subsection{Correlation Plot}
+
+If \texttt{keep\_all=True}, the \texttt{plot\_correlated\_variables}
+method draws a scatter and density plot of yearly event counts against
+mean severity, displaying the empirical Pearson correlation. This plot
+is useful for sanity-checking whether the imposed dependency structure
+behaves as expected.
+
+\begin{lstlisting}[style=pythonstyle]
+simulator.plot_correlated_variables()
+\end{lstlisting}
+
+\section{Applying Deductibles and Limits}
+\label{sec:deductibles_and_limits}
+
+Insurance contracts often include per-occurrence and aggregate
+deductibles and limits. These can be applied to simulated losses with
+\texttt{apply\_deductible\_and\_limit}:
+
+\begin{lstlisting}[style=pythonstyle]
+gross_loss = simulator.apply_deductible_and_limit(
+    per_occurrence_ded=1000,
+    per_occurrence_limit=10000,
+    agg_ded=100000,
+    agg_limit=300000,
+)
+\end{lstlisting}
+
+The method first reduces each event's loss by the per-occurrence
+deductible (with a floor at zero), caps the result at the per-occurrence
+limit, then aggregates by year and applies the annual aggregate
+deductible and limit.
+
+The returned DataFrame contains the gross (capped and floored) annual
+losses. To run further analyses on the post-contract losses, supply the
+DataFrame as the \texttt{all\_simulations} keyword argument to
+\texttt{analyze\_results}:
+
+\begin{lstlisting}[style=pythonstyle]
+gross_loss["amount"] = gross_loss["gross_loss"]
+metrics = simulator.analyze_results(all_simulations=gross_loss)
+\end{lstlisting}
+
+\section{Reproducibility}
+
+All random draws inside \texttt{StochasticSimulator} are governed by the
+\texttt{seed} argument supplied at construction. Setting the seed to a
+fixed value guarantees that the same input produces the same output
+across runs, which is essential for validation and audit. The
+recommended practice is to record the seed alongside any results that
+are reported externally.

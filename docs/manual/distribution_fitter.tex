@@ -1,0 +1,181 @@
+\chapter{DistributionFitter}
+\label{chap:distribution_fitter}
+
+\section{Purpose}
+
+The \texttt{DistributionFitter} class is used to fit one or more candidate
+probability distributions to an observed dataset and to compare them using
+goodness-of-fit metrics. In actuarial practice, this step typically
+precedes simulation: the analyst inspects historical claim counts or
+severities, selects a plausible distributional form, and validates the
+choice using diagnostic statistics.
+
+\section{Supported Distributions}
+
+\texttt{DistributionFitter} supports the same distributions exposed by
+\texttt{actstats}, summarised below.
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+\textbf{Type} & \textbf{Distributions} \\
+\midrule
+Continuous severity & \texttt{normal}, \texttt{logistic},
+                      \texttt{exponential}, \texttt{gamma}, \texttt{beta},
+                      \texttt{lognormal}, \texttt{weibull},
+                      \texttt{pareto}, \texttt{uniform} \\
+Discrete frequency  & \texttt{poisson}, \texttt{negative binomial} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The distributions used in any particular fitting run can be controlled
+through the \texttt{distributions} argument or via a YAML configuration file.
+
+\section{Goodness-of-Fit Metrics}
+
+For each fitted distribution, \texttt{DistributionFitter} computes:
+
+\begin{itemize}[leftmargin=*]
+    \item Log-likelihood
+    \item Akaike Information Criterion (AIC)
+    \item Bayesian Information Criterion (BIC)
+    \item Chi-square statistic
+    \item Kolmogorov--Smirnov statistic
+\end{itemize}
+
+The information criteria are defined as
+\[
+    \mathrm{AIC} = 2k - 2\ln L, \qquad
+    \mathrm{BIC} = k \ln n - 2 \ln L,
+\]
+where $k$ is the number of estimated parameters, $n$ is the sample size,
+and $L$ is the likelihood evaluated at the maximum-likelihood estimate.
+
+By default, the metrics used for ranking are AIC and BIC. Additional
+metrics can be requested by passing a custom \texttt{metrics} list.
+
+\section{Basic Workflow}
+
+The typical workflow uses four steps:
+
+\begin{enumerate}[leftmargin=*]
+    \item Load configuration and select candidate distributions.
+    \item Construct a \texttt{DistributionFitter} with the data.
+    \item Call \texttt{fit()} to estimate parameters and compute metrics.
+    \item Review and select the best-fit distribution.
+\end{enumerate}
+
+\begin{lstlisting}[style=pythonstyle]
+from actsim import DistributionFitter, load_config
+from actstats import actuarial as act
+
+# Generate example severity data
+sev_data = act.lognormal(0.5, 0.2).rvs(size=10000)
+
+# Load configuration
+config = load_config()
+distributions = config.distributions["severity"]
+metrics = config.metrics
+
+# Construct the fitter
+fitter = DistributionFitter(
+    sev_data,
+    distributions=distributions,
+    metrics=metrics,
+)
+
+# Fit candidate distributions
+fitter.fit()
+\end{lstlisting}
+
+\section{Inspecting Results}
+
+After fitting, the best-fit distribution under each metric is stored in
+the \texttt{best\_fits} attribute, while the currently selected
+distribution is stored in \texttt{selected\_fit}.
+
+\begin{lstlisting}[style=pythonstyle]
+print("Best fits:", fitter.best_fits)
+print("Selected fit:", fitter.selected_fit)
+print("Selected distribution:", fitter.get_selected_dist())
+print("Selected parameters:", fitter.get_selected_params())
+\end{lstlisting}
+
+\section{Manually Selecting a Distribution}
+
+Users can override the automatic selection by name:
+
+\begin{lstlisting}[style=pythonstyle]
+fitter.select_distribution("gamma")
+print(fitter.selected_fit["params"])
+\end{lstlisting}
+
+This is useful when the analyst has a prior reason to prefer a particular
+distribution, or when comparing scenarios.
+
+\section{Sampling and Prediction}
+
+Once a distribution is selected, the fitter can be used as a drop-in
+sampler. The \texttt{sample} method returns random draws from the
+selected distribution, while \texttt{sample\_mixed} inserts a proportion
+of zeros and ones to handle datasets with mass at those points (e.g.\
+zero-inflated severity data).
+
+\begin{lstlisting}[style=pythonstyle]
+# Draw 10 samples
+samples = fitter.sample(size=10)
+
+# Draw 100 samples with 10% zeros and 5% ones
+mixed = fitter.sample_mixed(zero_prop=0.1, one_prop=0.05, size=100)
+
+# Evaluate the predicted density at given points
+density = fitter.predict([0.5, 1.0, 1.5, 2.0])
+\end{lstlisting}
+
+\section{Diagnostic Plots}
+
+The \texttt{plot\_predictions()} method draws a histogram of the data
+together with the probability density functions of the fitted candidate
+distributions. This plot is the primary visual diagnostic for assessing
+fit quality.
+
+\begin{lstlisting}[style=pythonstyle]
+fitter.plot_predictions()
+\end{lstlisting}
+
+\section{Summary Reports}
+
+Two methods produce numerical summaries:
+
+\begin{itemize}[leftmargin=*]
+    \item \texttt{calculate\_statistics()} returns a comparison of the
+          mean, standard deviation, and key percentiles between the
+          observed data and the predicted density.
+    \item \texttt{summary()} returns a DataFrame of all fitted
+          distributions, their parameters, and their goodness-of-fit
+          metrics.
+\end{itemize}
+
+\begin{lstlisting}[style=pythonstyle]
+fitter.calculate_statistics()
+fitter.summary()
+\end{lstlisting}
+
+\section{Practical Notes}
+
+A few practical considerations apply when using \texttt{DistributionFitter}:
+
+\begin{itemize}[leftmargin=*]
+    \item Some distributions (e.g.\ Pareto, beta) require positive or
+          bounded support. If the input data violate the support, the
+          fit for that distribution may fail; \texttt{DistributionFitter}
+          catches such failures and continues with the remaining
+          distributions.
+    \item AIC and BIC are convenient ranking tools but should be
+          interpreted alongside diagnostic plots, especially in the
+          tails, which often matter most for actuarial applications.
+    \item For frequency data, choose distributions appropriate to count
+          data (e.g.\ Poisson, negative binomial) rather than continuous
+          distributions.
+\end{itemize}
