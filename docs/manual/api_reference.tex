@@ -45,16 +45,17 @@ DistributionFitter(data, distributions=None, metrics=None)
 \texttt{get\_best\_fit(metric)} &
     Returns the best-fit dictionary for the given metric. \\
 \texttt{select\_distribution(name)} &
-    Manually overrides the selected distribution. \\
+    Selects a previously fitted distribution by name as the active
+    distribution. Requires \texttt{fit()} to have been called. \\
 \texttt{get\_selected\_dist()} &
     Returns the currently selected distribution object. \\
 \texttt{get\_selected\_params()} &
     Returns the parameters of the currently selected distribution. \\
 \texttt{predict(x)} &
     Evaluates the PDF (or PMF) of the selected distribution at \texttt{x}. \\
-\texttt{sample(size)} &
+\texttt{sample(size=1)} &
     Draws random samples from the selected distribution. \\
-\texttt{sample\_mixed(zero\_prop, one\_prop, size)} &
+\texttt{sample\_mixed(zero\_prop=0, one\_prop=0, size=1)} &
     Draws samples with a given proportion of zeros and ones inserted. \\
 \texttt{calculate\_statistics()} &
     Returns mean, standard deviation, and key percentiles for both the
@@ -128,7 +129,7 @@ StochasticSimulator(
     Plots a histogram of simulated aggregate losses. \\
 \texttt{plot\_correlated\_variables()} &
     Plots simulated frequency--severity correlation. \\
-\texttt{analyze\_results(quantiles, **kwargs)} &
+\texttt{analyze\_results(quantiles=[0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.99], **kwargs)} &
     Returns VaR, TVaR, OEP, and AEP at the specified quantiles. \\
 \texttt{apply\_deductible\_and\_limit(\dots)} &
     Applies per-occurrence and aggregate deductibles and limits.
@@ -174,7 +175,12 @@ ClaimSimulator(
 \textbf{Argument} & \textbf{Description} \\
 \midrule
 \endhead
-\texttt{policies\_df}   & Policy table with required columns. \\
+\texttt{policies\_df}   & Policy table; must contain the columns
+                         \texttt{policy\_id}, \texttt{freq\_dist},
+                         \texttt{freq\_params}, \texttt{sev\_dist},
+                         \texttt{sev\_params}, \texttt{start\_date},
+                         and \texttt{end\_date}. The \texttt{freq\_params}
+                         and \texttt{sev\_params} entries must be tuples. \\
 \texttt{random\_seed}   & Random seed. \\
 \texttt{correlation}    & Optional frequency--severity correlation. \\
 \texttt{copula\_type}   & Optional copula family. \\
@@ -193,7 +199,7 @@ ClaimSimulator(
     Groups policies by frequency/severity specifications. \\
 \texttt{simulate\_claims()} &
     Simulates claim counts and severities for each policy group. \\
-\texttt{simulate\_dates\_nhpp(lambda0, alpha, phase, T)} &
+\texttt{simulate\_dates\_nhpp(lambda0=10, alpha=0.5, phase=0, T=1)} &
     Assigns occurrence dates using a non-homogeneous Poisson process. \\
 \texttt{simulate\_claim\_development(\dots)} &
     Develops claims using stochastic LDFs. Arguments:
@@ -263,11 +269,13 @@ This decorator is intended for development use rather than as part of
 the public API.
 
 % =====================================================================
-\section{ActuarialDistribution Names}
+\section{Supported Distribution Names}
 \label{api:dist_names}
 
 The following table lists the distribution names accepted by both
-\texttt{DistributionFitter} and \texttt{StochasticSimulator}.
+\texttt{DistributionFitter} and \texttt{StochasticSimulator}. The
+underlying implementations are provided by the \texttt{actstats}
+package (\texttt{actstats.actuarial}).
 
 \begin{longtable}{p{0.3\textwidth}p{0.65\textwidth}}
 \toprule
