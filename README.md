@@ -9,10 +9,14 @@ A Python package for actuarial risk modeling and simulation.
 
 ## Features
 
-- **Risk Modeling**: Advanced tools for actuarial risk analysis
-- **Monte Carlo Simulations**: High-performance simulation capabilities
-- **Configuration Management**: Flexible YAML-based configuration system
-- **Statistical Analysis**: Comprehensive statistical tools for risk assessment
+- **Frequency-Severity Simulation**: Monte Carlo modeling of aggregate losses using configurable frequency and severity distributions (Poisson, lognormal, gamma, Pareto, and more)
+- **Synthetic Claim Generation**: Produce policy and claim level datasets for testing, benchmarking, and stress-testing actuarial workflows when real data is limited or restricted
+- **Distribution Fitting**: Fit, compare, and diagnose candidate distributions against observed data with built-in goodness-of-fit testing
+- **Claim Development**: Project claims through time using loss development factors, with native support for accident-year and development-age structures
+- **Risk Metrics**: Compute mean, percentiles, VaR, TVaR, AEP, and OEP from simulated loss distributions
+- **Chainladder Integration**: Convert simulated claims into triangle format for reserving, IBNR estimation, and ultimate loss projection using the `chainladder` package
+- **Reproducibility**: Seed-controlled simulations and transparent validation tools designed to meet open-source and CAS review standards
+- **Python-Native**: Built on ActStats, NumPy, pandas, and SciPy for seamless integration with the modern data science and actuarial analytics stack
 
 ## Installation
 
