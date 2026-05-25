@@ -46,8 +46,80 @@ class DistributionFitter:
         self.statistics = {}
         self.selected_fit = None
     
-    def truncate_data(self, i=int):
-        self.data = self.data[(self.data != i).all(axis=1)]
+    def truncate_data(self, remove_values=None, lower=None, upper=None, q_low=None, q_high=None, dropna=True, inplace=True):
+        """
+        Truncate / clean data before distribution fitting.
+
+        Parameters
+        ----------
+        remove_values : scalar or list-like, optional
+            Values to remove, e.g. 0, -999, or [0, -999].
+        lower : float, optional
+            Keep observations >= lower.
+        upper : float, optional
+            Keep observations <= upper.
+        q_low : float, optional
+            Lower quantile cutoff, e.g. 0.01.
+        q_high : float, optional
+            Upper quantile cutoff, e.g. 0.99.
+        dropna : bool, default True
+            Whether to remove NaN values.
+        inplace : bool, default True
+            If True, update self.data. Otherwise return truncated data.
+
+        Returns
+        -------
+        data or self
+            Returns self if inplace=True, otherwise returns truncated data.
+        """
+        data = self.data.copy() if hasattr(self.data, "copy") else np.array(self.data)
+
+        # Convert to pandas Series for univariate distribution fitting
+        if isinstance(data, pd.DataFrame):
+            if data.shape[1] != 1:
+                raise ValueError(
+                    "Distribution fitting expects univariate data. "
+                    "Please pass a Series, array, list, or one-column DataFrame."
+                )
+            s = data.iloc[:, 0].copy()
+        elif isinstance(data, pd.Series):
+            s = data.copy()
+        else:
+            s = pd.Series(np.asarray(data).ravel())
+
+        # Convert to numeric where possible
+        s = pd.to_numeric(s, errors="coerce")
+
+        mask = pd.Series(True, index=s.index)
+
+        if dropna:
+            mask &= s.notna()
+
+        if remove_values is not None:
+            if not isinstance(remove_values, (list, tuple, set)):
+                remove_values = [remove_values]
+            mask &= ~s.isin(remove_values)
+
+        if q_low is not None:
+            lower = s[mask].quantile(q_low)
+
+        if q_high is not None:
+            upper = s[mask].quantile(q_high)
+
+        if lower is not None:
+            mask &= s >= lower
+
+        if upper is not None:
+            mask &= s <= upper
+
+        truncated = s.loc[mask].reset_index(drop=True)
+
+        if inplace:
+            self.data = truncated
+            self._length = len(truncated)
+            return self
+
+        return truncated
 
     def fit(self):
         if self.data is None:

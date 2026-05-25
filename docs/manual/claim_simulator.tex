@@ -89,7 +89,9 @@ The resulting \texttt{claim\_data} DataFrame contains the columns
 \texttt{amount}, \texttt{policy\_id}, \texttt{start\_date}, and
 \texttt{end\_date}. The \texttt{year} column corresponds to the policy
 index within its group rather than a calendar year, and is used
-internally to map simulated claims back to their parent policy.
+internally to map simulated claims back to their parent policy. This 
+design reflects the package's original focus on catastrophe modelling, 
+and the column naming and structure will be refined in a future version.
 
 \subsection{Policies with Zero Simulated Claims}
 
@@ -157,7 +159,7 @@ For each claim, a unique set of stochastic LDFs is drawn by multiplying
 each base factor by a normal random variable with mean $1$ and standard
 deviation \texttt{volatility}. Cumulative development factors (CDFs) are
 constructed by chaining the stochastic LDFs from the latest age backwards.
-The reported loss at age $a$ is then computed as
+The incurred loss at age $a$ is then computed as
 \[
     L_a = \frac{U}{\mathrm{CDF}_a},
 \]
@@ -174,12 +176,12 @@ below.
 \toprule
 \textbf{Column} & \textbf{Description} \\
 \midrule
-\texttt{accident\_year}     & Calendar year of the claim's incurred date. \\
+\texttt{accident\_year}     & Accident year of the claim's incurred date. \\
 \texttt{incurred\_date}     & Date the claim occurred. \\
 \texttt{claim\_id}          & Unique claim identifier. \\
 \texttt{policy\_id}         & Identifier of the parent policy. \\
 \texttt{development\_month} & Development age in months. \\
-\texttt{incurred\_loss}     & Reported (incurred) loss at this age. \\
+\texttt{incurred\_loss}     & Incurred loss at this age. \\
 \texttt{development\_date}  & Calendar date corresponding to the
                               development age. \\
 \bottomrule

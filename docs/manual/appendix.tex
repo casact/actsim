@@ -15,16 +15,16 @@ actuarial usage.
 \midrule
 \endhead
 \texttt{normal}            & $(\mu, \sigma)$       & General-purpose continuous fits, sensitivity analyses. \\
-\texttt{logistic}          & $(\mathrm{loc}, \mathrm{scale})$ & Heavy-shouldered alternative to normal. \\
-\texttt{exponential}       & $(\lambda)$           & Inter-arrival times, simple severity benchmarks. \\
-\texttt{gamma}             & $(\mathrm{shape}, \mathrm{scale})$ & Common severity model with closed-form moments. \\
-\texttt{beta}              & $(\alpha, \beta)$     & Loss ratios, bounded severities. \\
+\texttt{logistic}          & $(\mu, s)$ & Heavy-shouldered alternative to normal. follows wikipedia parameterization. \\
+\texttt{exponential} & $(\beta)$ & Inter-arrival times and severity benchmarks; follows Bahnemann's actuarial parameterization~\citep{bahnemann2015distributions}. \\
+\texttt{gamma}             & $(\alpha, \theta)$ & Common severity model with closed-form moments. \\
+\texttt{beta}              & $(\alpha, \beta)$     & Loss ratios, bounded severities. follows wikipedia parameterization. \\
 \texttt{lognormal}         & $(\mu, \sigma)$       & Most common severity model in property/casualty. \\
-\texttt{weibull}           & $(\mathrm{shape}, \mathrm{scale})$ & Survival-style models, alternative severity model. \\
-\texttt{pareto}            & $(\mathrm{shape}, \mathrm{scale})$ & Heavy-tailed severities, large-loss modelling. \\
-\texttt{uniform}           & $(\mathrm{low}, \mathrm{high})$ & Sensitivity testing, simple stylised examples. \\
+\texttt{weibull}           & $(\delta, \beta)$ & Survival-style models, alternative severity model; follows Bahnemann's actuarial parameterization~\citep{bahnemann2015distributions}. \\
+\texttt{pareto}            & $(\alpha, \beta)$ & Heavy-tailed severities, large-loss modelling; follows Bahnemann's actuarial parameterization~\citep{bahnemann2015distributions}. \\
+\texttt{uniform}           & $(a, b)$ & Sensitivity testing, simple stylised examples. \\
 \texttt{poisson}           & $(\lambda)$           & Standard frequency model. \\
-\texttt{negative binomial} & $(r, p)$              & Over-dispersed frequency model. \\
+\texttt{negative binomial} & $(r, p)$              & Over-dispersed frequency model; follows wikipedia parameterization. \\
 \bottomrule
 \end{longtable}
 
@@ -34,28 +34,101 @@ actuarial usage.
 
 The parameter conventions used by \actsim follow those of
 \texttt{actstats}, which provides actuarial-style parametrisations.
-For users who are familiar with \texttt{scipy.stats}, the most common
-differences are summarised below.
+For users who are familiar with \texttt{scipy.stats}, the differences 
+are summarised below.
 
-\begin{longtable}{p{0.22\textwidth}p{0.36\textwidth}p{0.32\textwidth}}
-\toprule
-\textbf{Distribution} & \textbf{actstats} & \textbf{scipy.stats} \\
-\midrule
-\endhead
-Lognormal &
-    $(\mu, \sigma)$ where $\ln X \sim \mathcal{N}(\mu, \sigma^{2})$ &
-    \texttt{lognorm(s=$\sigma$, scale=$e^{\mu}$)} \\
-Gamma &
-    $(\mathrm{shape}, \mathrm{scale})$ &
-    \texttt{gamma(a=shape, scale=scale)} \\
-Pareto &
-    $(\mathrm{shape}, \mathrm{scale})$ (Pareto type II / Lomax-style) &
-    \texttt{pareto(b=shape, scale=scale)} \\
-Weibull &
-    $(\mathrm{shape}, \mathrm{scale})$ &
-    \texttt{weibull\_min(c=shape, scale=scale)} \\
-\bottomrule
-\end{longtable}
+\begin{longtable}[htbp]
+  \centering
+  \small
+  \renewcommand{\arraystretch}{1.25}
+  \begin{tabularx}{\textwidth}{llllX}
+  \toprule
+  \textbf{Distribution} 
+  & \textbf{Actuarial Parameters} 
+  & \textbf{SciPy Equivalent} 
+  & \textbf{Mean} 
+  & \textbf{Variance} \\
+  \midrule
+  
+  \texttt{lognormal} 
+  & $(\mu, \sigma)$ 
+  & \texttt{lognorm}$(s=\sigma,\ \text{scale}=\exp(\mu))$ 
+  & $\exp\left(\mu + \frac{\sigma^2}{2}\right)$ 
+  & $\left(\exp(\sigma^2)-1\right)\exp\left(2\mu+\sigma^2\right)$ \\
+  
+  \texttt{gamma} 
+  & $(\alpha, \beta)$ 
+  & \texttt{gamma}$(a=\alpha,\ \text{scale}=\beta)$ 
+  & $\alpha\beta$ 
+  & $\alpha\beta^2$ \\
+  
+  \texttt{weibull} 
+  & $(\delta, \beta)$ 
+  & \texttt{weibull\_min}$(c=\delta,\ \text{scale}=\beta)$ 
+  & $\beta\Gamma\left(1+\frac{1}{\delta}\right)$ 
+  & $\beta^2\left[\Gamma\left(1+\frac{2}{\delta}\right)
+  - \Gamma\left(1+\frac{1}{\delta}\right)^2\right]$ \\
+  
+  \texttt{pareto} 
+  & $(\alpha, \beta)$ 
+  & \texttt{lomax}$(b=\alpha,\ \text{scale}=\beta)$ 
+  & $\dfrac{\beta}{\alpha-1},\ \alpha>1$ 
+  & $\dfrac{\beta^2\alpha}{(\alpha-1)^2(\alpha-2)},\ \alpha>2$ \\
+  
+  \texttt{beta} 
+  & $(\alpha, \beta)$ 
+  & \texttt{beta}$(a=\alpha,\ b=\beta)$ 
+  & $\dfrac{\alpha}{\alpha+\beta}$ 
+  & $\dfrac{\alpha\beta}{(\alpha+\beta)^2(\alpha+\beta+1)}$ \\
+  
+  \texttt{poisson} 
+  & $(\lambda)$ 
+  & \texttt{poisson}$(\mu=\lambda)$ 
+  & $\lambda$ 
+  & $\lambda$ \\
+  
+  \texttt{negative\_binomial} 
+  & $(r, p)$ 
+  & \texttt{nbinom}$(n=r,\ p=p)$ 
+  & $\dfrac{r(1-p)}{p}$ 
+  & $\dfrac{r(1-p)}{p^2}$ \\
+  
+  \texttt{normal} 
+  & $(\mu, \sigma)$ 
+  & \texttt{norm}$(\text{loc}=\mu,\ \text{scale}=\sigma)$ 
+  & $\mu$ 
+  & $\sigma^2$ \\
+  
+  \texttt{logistic} 
+  & $(\mu, s)$ 
+  & \texttt{logistic}$(\text{loc}=\mu,\ \text{scale}=s)$ 
+  & $\mu$ 
+  & $\dfrac{\pi^2}{3}s^2$ \\
+  
+  \texttt{exponential} 
+  & $(\beta)$ 
+  & \texttt{expon}$(\text{scale}=\beta)$ 
+  & $\beta$ 
+  & $\beta^2$ \\
+  
+  \texttt{uniform} 
+  & $(a, b)$ 
+  & \texttt{uniform}$(\text{loc}=a,\ \text{scale}=b-a)$ 
+  & $\dfrac{a+b}{2}$ 
+  & $\dfrac{(b-a)^2}{12}$ \\
+  
+  \texttt{nonhomogeneous\_poisson} 
+  & $(\lambda_0, \alpha, \phi, T)$ 
+  & custom \texttt{NHPPDistribution} 
+  & $\lambda_0 T + \dfrac{\lambda_0\alpha}{2\pi}
+  \left[\cos(\phi)-\cos(2\pi T+\phi)\right]$ 
+  & same as mean \\
+  
+  \bottomrule
+  \end{tabularx}
+  \caption{Actuarial parameterizations and SciPy equivalents for supported distributions.}
+  \label{tab:actuarial_scipy_distributions}
+  \end{longtable}
 
 When in doubt, validate the parameters by drawing a large sample,
 computing the empirical mean and variance, and comparing to the

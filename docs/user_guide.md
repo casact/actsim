@@ -35,7 +35,7 @@ pip install ActSim
 
 
 ```bash
-git clone https://github.com/jzhng105/ActSim.git
+git clone https://github.com/casact/actsim.git
 cd ActSim
 pip install -e .
 ```
@@ -48,7 +48,7 @@ If you intend to contribute to the project, install the development dependencies
 
 
 ```bash
-git clone https://github.com/jzhng105/ActSim.git
+git clone https://github.com/casact/actsim.git
 cd ActSim
 pip install -e .[dev]
 ```
@@ -603,7 +603,7 @@ The following diagram summarizes the typical workflow when using ActSim. It begi
 
 
 - **License:** ActSim is distributed under the Apache 2.0 licence. See `LICENSE` in the repository for details.
-- **Issues & discussions:** Report problems or share ideas on the GitHub [issues](https://github.com/jzhng105/ActSim/issues) and [discussions](https://github.com/jzhng105/ActSim/discussions) pages.
+- **Issues & discussions:** Report problems or share ideas on the GitHub [issues](https://github.com/casact/actsim/issues) and [discussions](https://github.com/casact/actsim/discussions) pages.
 - **Citation:** If you use ActSim in research, cite it as shown in the README:
 
 
@@ -612,7 +612,7 @@ The following diagram summarizes the typical workflow when using ActSim. It begi
 title = {ActSim: A ZNSTARS Python package for actuarial risk modeling and simulation},
 author = {Juntao Zhang},
 year = {2025},
-url = {https://github.com/jzhng105/ActSim}
+url = {https://github.com/casact/actsim}
 }
 ```
 
@@ -625,7 +625,7 @@ To set up a development environment:
 
 ```bash
 # Clone the repository and create a virtual environment
-git clone https://github.com/jzhng105/ActSim.git
+git clone https://github.com/casact/actsim.git
 cd ActSim
 python -m venv venv
 source venv/bin/activate # use venv\Scripts\activate on Windows

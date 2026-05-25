@@ -66,8 +66,8 @@ DistributionFitter(data, distributions=None, metrics=None)
     \texttt{distribution\_names=None}. \\
 \texttt{summary()} &
     Returns a DataFrame summarising the fitted distributions. \\
-\texttt{truncate\_data(i)} &
-    Removes observations equal to \texttt{i} from the data. \\
+\texttt{truncate\_data(self, remove\_values=None, lower=None, upper=None, q\_low=None, q\_high=None, dropna=True, inplace=True)} &
+    Truncate / clean data before distribution fitting. \\
 \bottomrule
 \end{longtable}
 
@@ -99,10 +99,10 @@ StochasticSimulator(
 \texttt{freq\_params}  & Tuple of frequency distribution parameters. \\
 \texttt{sev\_dist}     & Name of the severity distribution. \\
 \texttt{sev\_params}   & Tuple of severity distribution parameters. \\
-\texttt{num\_sim}      & Number of simulation periods. \\
+\texttt{num\_sim}      & Number of simulations or number of years in catastrophe modelling. \\
 \texttt{keep\_all}     & If \texttt{True}, retain individual event records. \\
 \texttt{seed}          & Random seed. \\
-\texttt{correlation}   & Optional correlation between $N$ and $X$. \\
+\texttt{correlation}   & Optional correlation between frequency and severity. \\
 \texttt{copula\_type}  & Optional copula family. \\
 \texttt{theta}         & Copula dependence parameter. \\
 \bottomrule
@@ -117,8 +117,6 @@ StochasticSimulator(
 \endhead
 \texttt{gen\_agg\_simulations()} &
     Runs the aggregate loss simulation. \\
-\texttt{gen\_copula()} &
-    Generates correlated uniforms from the configured copula family. \\
 \texttt{gen\_multivariate\_corr\_simulations(\dots)} &
     Generates correlated marginal simulations across multiple lines of
     business. Arguments: \texttt{corr\_matrix\_file},

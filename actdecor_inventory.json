@@ -1,0 +1,50 @@
+{
+  "functions": {
+    "fa7c00302c61a956": {
+      "estimated_cost_usd": 0.0005250000000000001,
+      "estimated_latency_ms": 28,
+      "function_name": "get_link_ratio",
+      "module": "__main__",
+      "qualname": "get_link_ratio",
+      "ranking": [
+        {
+          "model_id": "gpt-5.4-mini",
+          "reasons": [
+            "task=unknown",
+            "quality_fit=0.40",
+            "tier_fit=1.00",
+            "cost_fit=1.00",
+            "latency_fit=0.99"
+          ],
+          "score": 0.7656
+        },
+        {
+          "model_id": "deepseek-ai/deepseek-v4-flash",
+          "reasons": [
+            "task=unknown",
+            "quality_fit=0.40",
+            "tier_fit=1.00",
+            "cost_fit=1.00",
+            "latency_fit=0.99"
+          ],
+          "score": 0.7656
+        },
+        {
+          "model_id": "meta/llama-3.3-70b-instruct",
+          "reasons": [
+            "task=unknown",
+            "quality_fit=0.40",
+            "tier_fit=1.00",
+            "cost_fit=1.00",
+            "latency_fit=0.99"
+          ],
+          "score": 0.7653
+        }
+      ],
+      "recommended_model": "gpt-5.4-mini",
+      "router": "heuristic",
+      "updated_at": "2026-05-20T03:24:48.597242+00:00"
+    }
+  },
+  "version": 1
+}

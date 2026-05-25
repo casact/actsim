@@ -68,7 +68,7 @@ class StochasticSimulator:
         with open(file_path, 'r') as f:
             return json.load(f)
 
-    def gen_copula(self):
+    def _gen_copula(self):
         ### Generate copula for frequency and severity
         if self.copula_type == 'gaussian':
             corr_matrix = np.array([[1, self.correlation], [self.correlation, 1]])
@@ -176,7 +176,7 @@ class StochasticSimulator:
         
         # If correlation is introduced via copula
         if self.correlation is not None and self.copula_type is not None:
-            u_freq, u_sev = self.gen_copula()
+            u_freq, u_sev = self._gen_copula()
 
             num_events_array = self.frequency_dist.ppf(u_freq, *self.frequency_params).astype(int)
 
