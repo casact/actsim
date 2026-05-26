@@ -15,4 +15,13 @@ def load_config(file_path: str = None):
     """
     return Config(file_path)
 
-__all__ = ["DistributionFitter", "StochasticSimulator", "Config", "ClaimSimulator", "load_config"]
+from .cli import main as cli_main
+
+__all__ = [
+    "DistributionFitter",
+    "StochasticSimulator",
+    "Config",
+    "ClaimSimulator",
+    "load_config",
+    "cli_main",
+]
