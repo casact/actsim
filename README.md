@@ -69,9 +69,7 @@ sev_fitter.selected_fit
 ## Documentation
 
 - [User Guide](docs/user_guide.md) - Getting started and basic usage
-- [API Reference](docs/api_reference.md) - Detailed API documentation
-- [Examples](docs/examples.md) - Code examples and tutorials
-- [Development](docs/development.md) - Contributing and development guidelines
+- [API Reference](docs/manual/actsim_manual.pdf) - Detailed complete user manual covering API documentation, code examples, tutorials, contributing and development guidelines
 
 ## Features in Detail
 
@@ -440,15 +438,15 @@ If you use ActSim in your research, please cite:
   title={ActSim: A Python package for actuarial risk modeling and simulation},
   author={Juntao Zhang},
   year={2025},
-  url={https://github.com/jzhng105/ActSim}
+  url={https://github.com/casact/ActSim}
 }
 ```
 
 ## Support
 
 - **Documentation**: [docs/](docs/)
-- **Issues**: [GitHub Issues](https://github.com/jzhng105/ActSim/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/jzhng105/ActSim/discussions)
+- **Issues**: [GitHub Issues](https://github.com/casact/ActSim/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/casact/ActSim/discussions)
 
 ## Changelog
 
